@@ -24,20 +24,60 @@ let selectionModeActive = false;
 let lastCheckedIndex = -1;
 let observerAttached = false;
 let currentDownloadMode = 'zip'; // Default: bulk zip archive
+let currentIncludeTranscripts = true; // Default: true companion transcripts
 const selectedMessageIds = new Set();
 const selectedMediaCache = new Map(); // msgId -> mediaItem
 
-// Listen to downloadMode setting from chrome.storage
+// Safe WebExtensions i18n helper
+function getI18nMsg(key, substitutions, fallback) {
+  try {
+    if (typeof chrome !== 'undefined' && chrome.i18n && typeof chrome.i18n.getMessage === 'function') {
+      const msg = chrome.i18n.getMessage(key, substitutions);
+      if (msg) return msg;
+    }
+  } catch (e) {}
+  return fallback || key;
+}
+
+// Function to notify popup / runtime of selection updates in real time
+function notifySelectionState() {
+  try {
+    if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
+      chrome.runtime.sendMessage({
+        action: 'selectionStateChanged',
+        active: selectionModeActive,
+        selectedCount: selectedMessageIds.size,
+        downloadMode: currentDownloadMode,
+        includeTranscripts: currentIncludeTranscripts
+      }, () => {
+        if (chrome.runtime.lastError) {}
+      });
+    }
+  } catch (e) {}
+}
+
+// Listen to downloadMode & includeTranscripts settings from chrome.storage
 if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
-  chrome.storage.local.get({ downloadMode: 'zip' }, (res) => {
-    if (res && res.downloadMode) {
-      currentDownloadMode = res.downloadMode;
+  chrome.storage.local.get({ downloadMode: 'zip', includeTranscripts: true }, (res) => {
+    if (res) {
+      if (res.downloadMode) currentDownloadMode = res.downloadMode;
+      if (typeof res.includeTranscripts === 'boolean') currentIncludeTranscripts = res.includeTranscripts;
+      updateSelectionActionBar();
     }
   });
   if (chrome.storage.onChanged) {
     chrome.storage.onChanged.addListener((changes, areaName) => {
-      if (areaName === 'local' && changes.downloadMode) {
-        currentDownloadMode = changes.downloadMode.newValue || 'zip';
+      if (areaName === 'local') {
+        let changed = false;
+        if (changes.downloadMode) {
+          currentDownloadMode = changes.downloadMode.newValue || 'zip';
+          changed = true;
+        }
+        if (changes.includeTranscripts) {
+          currentIncludeTranscripts = changes.includeTranscripts.newValue;
+          changed = true;
+        }
+        if (changed) updateSelectionActionBar();
       }
     });
   }
@@ -61,8 +101,37 @@ function ensureInPageStyles() {
   const style = document.createElement('style');
   style.id = 'wa-downloader-inpage-styles';
   style.textContent = `
+    /* CSS Variables: WhatsApp Web Light and Dark Mode adaptive tokens */
+    :root {
+      --wam-primary: #00a884;
+      --wam-primary-hover: #008f6f;
+      --wam-primary-glow: rgba(0, 168, 132, 0.35);
+      --wam-bar-bg: rgba(255, 255, 255, 0.95);
+      --wam-bar-border: rgba(0, 168, 132, 0.4);
+      --wam-text: #111b21;
+      --wam-text-subtle: #667781;
+      --wam-surface-btn: rgba(0, 0, 0, 0.05);
+      --wam-surface-btn-hover: rgba(0, 0, 0, 0.1);
+      --wam-pill-bg: rgba(0, 0, 0, 0.05);
+      --wam-pill-border: rgba(0, 0, 0, 0.1);
+      --wam-pill-text: #111b21;
+      --wam-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+    }
+    body.dark, :root.dark {
+      --wam-bar-bg: rgba(17, 27, 33, 0.95);
+      --wam-bar-border: rgba(0, 168, 132, 0.45);
+      --wam-text: #e9edef;
+      --wam-text-subtle: #8696a0;
+      --wam-surface-btn: rgba(255, 255, 255, 0.08);
+      --wam-surface-btn-hover: rgba(255, 255, 255, 0.15);
+      --wam-pill-bg: rgba(255, 255, 255, 0.08);
+      --wam-pill-border: rgba(255, 255, 255, 0.15);
+      --wam-pill-text: #e9edef;
+      --wam-shadow: 0 12px 36px rgba(0, 0, 0, 0.65);
+    }
+
     /* Floating trigger badge in WhatsApp header */
-    .wa-dl-header-badge {
+    .wa-dl-header-badge, .wam-header-badge {
       display: inline-flex;
       align-items: center;
       gap: 6px;
@@ -71,7 +140,7 @@ function ensureInPageStyles() {
       background: linear-gradient(135deg, rgba(0, 168, 132, 0.2), rgba(0, 168, 132, 0.35));
       border: 1px solid rgba(0, 168, 132, 0.5);
       border-radius: 20px;
-      color: #00a884;
+      color: var(--wam-primary);
       font-size: 12px;
       font-weight: 600;
       cursor: pointer;
@@ -79,20 +148,20 @@ function ensureInPageStyles() {
       transition: all 0.2s ease;
       z-index: 100;
     }
-    .wa-dl-header-badge:hover {
+    .wa-dl-header-badge:hover, .wam-header-badge:hover {
       background: rgba(0, 168, 132, 0.3);
-      box-shadow: 0 2px 8px rgba(0, 168, 132, 0.3);
+      box-shadow: 0 2px 8px var(--wam-primary-glow);
       transform: translateY(-1px);
     }
-    .wa-dl-header-badge.active {
-      background: #00a884;
+    .wa-dl-header-badge.active, .wam-header-badge.active {
+      background: var(--wam-primary);
       color: #ffffff;
-      border-color: #00a884;
-      box-shadow: 0 0 12px rgba(0, 168, 132, 0.5);
+      border-color: var(--wam-primary);
+      box-shadow: 0 0 12px var(--wam-primary-glow);
     }
 
     /* Message Selection Checkbox Overlay */
-    .wa-dl-checkbox-wrap {
+    .wa-dl-checkbox-wrap, .wam-checkbox-wrap {
       position: absolute;
       top: 6px;
       left: 6px;
@@ -103,54 +172,54 @@ function ensureInPageStyles() {
       width: 26px;
       height: 26px;
       border-radius: 50%;
-      background: rgba(17, 27, 33, 0.9);
-      border: 1.5px solid #00a884;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.45);
+      background: var(--wam-bar-bg);
+      border: 1.5px solid var(--wam-primary);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.35);
       cursor: pointer;
       transition: transform 0.15s ease;
     }
-    .wa-dl-checkbox-wrap:hover {
+    .wa-dl-checkbox-wrap:hover, .wam-checkbox-wrap:hover {
       transform: scale(1.12);
     }
-    .wa-dl-checkbox-wrap input[type="checkbox"] {
+    .wa-dl-checkbox-wrap input[type="checkbox"], .wam-checkbox-wrap input[type="checkbox"] {
       cursor: pointer;
       width: 16px;
       height: 16px;
-      accent-color: #00a884;
+      accent-color: var(--wam-primary);
       margin: 0;
     }
 
     /* Highlight on selected message row */
-    .wa-dl-selected-row {
-      outline: 2px solid #00a884 !important;
+    .wa-dl-selected-row, .wam-selected-row {
+      outline: 2px solid var(--wam-primary) !important;
       outline-offset: 2px;
-      box-shadow: 0 0 14px rgba(0, 168, 132, 0.35) !important;
+      box-shadow: 0 0 14px var(--wam-primary-glow) !important;
       border-radius: 8px !important;
       transition: all 0.2s ease;
     }
 
     /* Bottom Floating Action Bar */
-    .wa-dl-action-bar {
+    .wa-dl-action-bar, .wam-action-bar {
       position: fixed;
-      bottom: 28px;
+      bottom: 24px;
       left: 50%;
       transform: translateX(-50%);
-      background: rgba(17, 27, 33, 0.94);
+      background: var(--wam-bar-bg);
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
-      border: 1px solid rgba(0, 168, 132, 0.45);
+      border: 1px solid var(--wam-bar-border);
       border-radius: 18px;
-      padding: 12px 20px;
-      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.65), 0 0 20px rgba(0, 168, 132, 0.15);
+      padding: 10px 16px;
+      box-shadow: var(--wam-shadow), 0 0 20px var(--wam-primary-glow);
       z-index: 999999;
       display: flex;
       align-items: center;
-      gap: 12px;
-      color: #e9edef;
+      gap: 10px;
+      color: var(--wam-text);
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       font-size: 13px;
       box-sizing: border-box;
-      max-width: 95vw;
+      max-width: 96vw;
       animation: waDlSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
@@ -159,117 +228,180 @@ function ensureInPageStyles() {
       to { transform: translate(-50%, 0); opacity: 1; }
     }
 
-    .wa-dl-bar-info {
+    .wa-dl-bar-info, .wam-bar-info {
       display: flex;
       align-items: center;
       gap: 6px;
       font-weight: 600;
-      color: #ffffff;
-      padding-right: 8px;
-      border-right: 1px solid rgba(255, 255, 255, 0.15);
+      color: var(--wam-text);
+      padding-right: 6px;
+      border-right: 1px solid var(--wam-pill-border);
       white-space: nowrap;
     }
 
-    .wa-dl-bar-badge {
-      background: #00a884;
+    .wa-dl-bar-badge, .wam-bar-badge {
+      background: var(--wam-primary);
       color: #ffffff;
       padding: 2px 8px;
       border-radius: 12px;
       font-size: 12px;
+      font-weight: 700;
     }
 
-    .wa-dl-btn {
-      padding: 8px 14px;
-      border-radius: 12px;
-      border: 1px solid rgba(255, 255, 255, 0.15);
+    /* Master checkbox in floating action bar */
+    .wa-dl-master-cb-label, .wam-master-cb-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      background: var(--wam-surface-btn);
+      border: 1px solid var(--wam-pill-border);
+      border-radius: 10px;
+      cursor: pointer;
+      user-select: none;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--wam-text);
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+    .wa-dl-master-cb-label:hover, .wam-master-cb-label:hover {
+      background: var(--wam-surface-btn-hover);
+      border-color: var(--wam-primary);
+    }
+    .wa-dl-master-checkbox, .wam-master-checkbox {
+      cursor: pointer;
+      width: 15px;
+      height: 15px;
+      accent-color: var(--wam-primary);
+      margin: 0;
+    }
+
+    /* Contextual filter pills */
+    .wam-filter-pills {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      background: var(--wam-surface-btn);
+      border: 1px solid var(--wam-pill-border);
+      border-radius: 10px;
+      padding: 2px;
+    }
+    .wam-filter-pill {
+      background: transparent;
+      border: none;
+      border-radius: 8px;
+      padding: 4px 8px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--wam-text-subtle);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+    .wam-filter-pill:hover {
+      color: var(--wam-text);
+      background: var(--wam-surface-btn-hover);
+    }
+    .wam-filter-pill.active {
+      background: var(--wam-primary);
+      color: #ffffff;
+      box-shadow: 0 1px 4px var(--wam-primary-glow);
+    }
+
+    /* Action buttons in floating bar */
+    .wa-dl-btn, .wam-btn {
+      padding: 7px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--wam-pill-border);
       font-size: 12px;
       font-weight: 600;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
-      gap: 6px;
+      gap: 5px;
       transition: all 0.2s ease;
       white-space: nowrap;
-      color: #ffffff;
+      color: var(--wam-text);
+      background: var(--wam-surface-btn);
     }
-
-    .wa-dl-btn-primary {
-      background: linear-gradient(135deg, #00a884, #008f6f);
-      border-color: #00a884;
-      box-shadow: 0 4px 12px rgba(0, 168, 132, 0.3);
-    }
-    .wa-dl-btn-primary:hover {
-      background: linear-gradient(135deg, #00c298, #00a884);
+    .wa-dl-btn:hover, .wam-btn:hover {
+      background: var(--wam-surface-btn-hover);
       transform: translateY(-1px);
     }
 
-    .wa-dl-btn-secondary {
-      background: rgba(255, 255, 255, 0.08);
+    .wa-dl-btn-primary, .wam-btn-primary {
+      background: linear-gradient(135deg, var(--wam-primary), var(--wam-primary-hover)) !important;
+      border-color: var(--wam-primary) !important;
+      color: #ffffff !important;
+      box-shadow: 0 3px 10px var(--wam-primary-glow);
     }
-    .wa-dl-btn-secondary:hover {
-      background: rgba(255, 255, 255, 0.15);
+    .wa-dl-btn-primary:hover, .wam-btn-primary:hover {
+      background: linear-gradient(135deg, #00c298, var(--wam-primary)) !important;
       transform: translateY(-1px);
     }
 
-    .wa-dl-btn-cancel {
-      background: rgba(255, 68, 68, 0.15);
+    .wam-btn-toggle {
+      border: 1px solid var(--wam-pill-border);
+      background: var(--wam-surface-btn);
+      color: var(--wam-text-subtle);
+    }
+    .wam-btn-toggle.active {
+      background: rgba(0, 168, 132, 0.2);
+      border-color: var(--wam-primary);
+      color: var(--wam-primary);
+    }
+
+    .wa-dl-btn-cancel, .wam-btn-cancel {
+      background: rgba(255, 68, 68, 0.12);
       color: #ff6b6b;
       border-color: rgba(255, 68, 68, 0.3);
+      padding: 7px 10px;
     }
-    .wa-dl-btn-cancel:hover {
-      background: rgba(255, 68, 68, 0.25);
+    .wa-dl-btn-cancel:hover, .wam-btn-cancel:hover {
+      background: rgba(255, 68, 68, 0.22);
     }
 
     /* Timestamp tag displayed next to checkbox */
-    .wa-dl-time-tag {
+    .wa-dl-time-tag, .wam-time-tag {
       position: absolute;
       top: 7px;
       left: 38px;
-      background: rgba(17, 27, 33, 0.88);
+      background: var(--wam-bar-bg);
       backdrop-filter: blur(8px);
       -webkit-backdrop-filter: blur(8px);
-      border: 1px solid rgba(0, 168, 132, 0.4);
-      color: #00a884;
+      border: 1px solid var(--wam-bar-border);
+      color: var(--wam-primary);
       font-size: 11px;
       font-weight: 600;
-      padding: 3px 8px;
-      border-radius: 10px;
+      padding: 2px 7px;
+      border-radius: 8px;
       white-space: nowrap;
       pointer-events: none;
       z-index: 1000;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
       display: inline-flex;
       align-items: center;
       gap: 4px;
     }
 
-    /* Master checkbox in floating action bar */
-    .wa-dl-master-cb-label {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 7px 14px;
-      background: rgba(255, 255, 255, 0.08);
-      border: 1px solid rgba(255, 255, 255, 0.18);
-      border-radius: 12px;
-      cursor: pointer;
-      user-select: none;
-      font-size: 13px;
-      font-weight: 600;
-      color: #ffffff;
-      transition: all 0.2s ease;
-      white-space: nowrap;
+    /* A11y: focus-visible and reduced motion */
+    .wa-dl-btn:focus-visible, .wam-btn:focus-visible,
+    .wa-dl-header-badge:focus-visible, .wam-header-badge:focus-visible,
+    .wam-filter-pill:focus-visible, .wa-dl-master-cb-label:focus-visible {
+      outline: 2px solid var(--wam-primary) !important;
+      outline-offset: 2px !important;
     }
-    .wa-dl-master-cb-label:hover {
-      background: rgba(255, 255, 255, 0.15);
-      border-color: #00a884;
-    }
-    .wa-dl-master-checkbox {
-      cursor: pointer;
-      width: 17px;
-      height: 17px;
-      accent-color: #00a884;
-      margin: 0;
+
+    @media (prefers-reduced-motion: reduce) {
+      .wa-dl-action-bar, .wam-action-bar {
+        animation: none !important;
+      }
+      .wa-dl-btn, .wam-btn, .wa-dl-header-badge, .wam-header-badge,
+      .wa-dl-checkbox-wrap, .wam-checkbox-wrap {
+        transition: none !important;
+        transform: none !important;
+      }
     }
   `;
   document.head.appendChild(style);
@@ -904,17 +1036,25 @@ function toggleSelectionMode(forceState) {
     document.querySelectorAll('.wa-dl-selected-row').forEach(r => r.classList.remove('wa-dl-selected-row'));
     document.querySelectorAll('.wa-dl-bubble-container').forEach(r => r.classList.remove('wa-dl-bubble-container'));
     const headerBtn = document.getElementById('wa-dl-header-badge');
-    if (headerBtn) headerBtn.classList.remove('active');
+    if (headerBtn) {
+      headerBtn.classList.remove('active');
+      headerBtn.setAttribute('aria-pressed', 'false');
+    }
     remoteLog('Selection mode disabled, UI cleaned up');
+    notifySelectionState();
     return false;
   }
 
   const headerBtn = document.getElementById('wa-dl-header-badge');
-  if (headerBtn) headerBtn.classList.add('active');
+  if (headerBtn) {
+    headerBtn.classList.add('active');
+    headerBtn.setAttribute('aria-pressed', 'true');
+  }
 
   renderSelectionCheckboxes();
   renderFloatingActionBar();
   attachScrollObserver();
+  notifySelectionState();
   return true;
 }
 
@@ -1081,57 +1221,177 @@ function renderFloatingActionBar() {
 
   const bar = document.createElement('div');
   bar.id = 'wa-dl-action-bar';
-  bar.className = 'wa-dl-action-bar';
+  bar.className = 'wa-dl-action-bar wam-action-bar';
   bar.setAttribute('role', 'region');
   bar.setAttribute('aria-label', 'WhatsApp Media Downloader floating control bar');
   bar.innerHTML = `
-    <div class="wa-dl-bar-info">
-      <span>Selection:</span>
-      <span class="wa-dl-bar-badge" id="wa-dl-count-badge" role="status" aria-live="polite">0 / 0</span>
+    <div class="wa-dl-bar-info wam-bar-info">
+      <span id="wa-dl-info-label"></span>
+      <span class="wa-dl-bar-badge wam-bar-badge" id="wa-dl-count-badge" role="status" aria-live="polite">0 / 0</span>
     </div>
-    <label class="wa-dl-master-cb-label" id="wa-dl-master-wrap" title="Select all / Deselect all">
-      <input type="checkbox" id="wa-dl-master-cb" class="wa-dl-master-checkbox" aria-label="Select all or deselect all media messages" aria-checked="false">
-      <span id="wa-dl-master-text">Select all</span>
+    <label class="wa-dl-master-cb-label wam-master-cb-label" id="wa-dl-master-wrap">
+      <input type="checkbox" id="wa-dl-master-cb" class="wa-dl-master-checkbox wam-master-checkbox" aria-checked="false">
+      <span id="wa-dl-master-text"></span>
     </label>
-    <button class="wa-dl-btn wa-dl-btn-secondary" id="wa-dl-btn-none" title="Deselect all messages" aria-label="Deselect all messages">✕ None</button>
-    <button class="wa-dl-btn wa-dl-btn-secondary" id="wa-dl-btn-vis" title="Select only messages currently visible on screen" aria-label="Select only messages currently visible on screen">👁️ Visible on screen</button>
-    <button class="wa-dl-btn wa-dl-btn-primary" id="wa-dl-btn-dl-media" title="Download selected media files" aria-label="Download selected media files">📥 Media</button>
-    <button class="wa-dl-btn wa-dl-btn-primary" id="wa-dl-btn-dl-transcripts" title="Download media with companion text transcripts & captions file" aria-label="Download media with companion transcripts file">📝 Media + Transcripts</button>
-    <button class="wa-dl-btn wa-dl-btn-cancel" id="wa-dl-btn-close" title="Exit selection mode" aria-label="Exit selection mode">✕</button>
+    <div class="wam-filter-pills" role="group" aria-label="Media category filter">
+      <button type="button" class="wam-filter-pill active" data-filter="all" aria-pressed="true" id="wa-dl-filter-all"></button>
+      <button type="button" class="wam-filter-pill" data-filter="image" aria-pressed="false" id="wa-dl-filter-images"></button>
+      <button type="button" class="wam-filter-pill" data-filter="video" aria-pressed="false" id="wa-dl-filter-videos"></button>
+      <button type="button" class="wam-filter-pill" data-filter="doc" aria-pressed="false" id="wa-dl-filter-docs"></button>
+      <button type="button" class="wam-filter-pill" data-filter="audio" aria-pressed="false" id="wa-dl-filter-audio"></button>
+    </div>
+    <button type="button" class="wa-dl-btn wam-btn wa-dl-btn-secondary wam-btn-secondary" id="wa-dl-btn-none"></button>
+    <button type="button" class="wa-dl-btn wam-btn wa-dl-btn-secondary wam-btn-secondary" id="wa-dl-btn-vis"></button>
+    <button type="button" class="wa-dl-btn wam-btn wam-btn-toggle" id="wa-dl-btn-transcripts" role="switch"></button>
+    <button type="button" class="wa-dl-btn wam-btn wa-dl-btn-primary wam-btn-primary" id="wa-dl-btn-download-main" aria-label="Download selected media"></button>
+    <!-- Hidden legacy buttons for compatibility -->
+    <button type="button" id="wa-dl-btn-dl-media" style="display:none;" aria-hidden="true"></button>
+    <button type="button" id="wa-dl-btn-dl-transcripts" style="display:none;" aria-hidden="true"></button>
+    <button type="button" class="wa-dl-btn wam-btn wa-dl-btn-cancel wam-btn-cancel" id="wa-dl-btn-close">✕</button>
   `;
+
+  const infoLabel = bar.querySelector('#wa-dl-info-label');
+  if (infoLabel) infoLabel.textContent = getI18nMsg('barSelectionLabel', null, 'Selection:');
+
+  const masterWrap = bar.querySelector('#wa-dl-master-wrap');
+  if (masterWrap) masterWrap.title = getI18nMsg('barMasterTooltip', null, 'Select all / Deselect all (Ctrl + A)');
+
+  const masterCb = bar.querySelector('#wa-dl-master-cb');
+  if (masterCb) masterCb.setAttribute('aria-label', getI18nMsg('barMasterTooltip', null, 'Select all or deselect all media messages'));
+
+  const masterText = bar.querySelector('#wa-dl-master-text');
+  if (masterText) masterText.textContent = getI18nMsg('barSelectAll', null, 'Select all');
+
+  const fAll = bar.querySelector('#wa-dl-filter-all');
+  if (fAll) fAll.textContent = getI18nMsg('barFilterAll', null, 'All');
+
+  const fImages = bar.querySelector('#wa-dl-filter-images');
+  if (fImages) fImages.textContent = getI18nMsg('barFilterImages', null, '🖼️ Photos');
+
+  const fVideos = bar.querySelector('#wa-dl-filter-videos');
+  if (fVideos) fVideos.textContent = getI18nMsg('barFilterVideos', null, '🎥 Videos');
+
+  const fDocs = bar.querySelector('#wa-dl-filter-docs');
+  if (fDocs) fDocs.textContent = getI18nMsg('barFilterDocs', null, '📄 Docs');
+
+  const fAudio = bar.querySelector('#wa-dl-filter-audio');
+  if (fAudio) fAudio.textContent = getI18nMsg('barFilterAudio', null, '🎵 Audio');
+
+  const btnNone = bar.querySelector('#wa-dl-btn-none');
+  if (btnNone) {
+    const noneText = getI18nMsg('barNone', null, '✕ None');
+    btnNone.textContent = noneText;
+    btnNone.title = noneText;
+    btnNone.setAttribute('aria-label', getI18nMsg('barNone', null, 'Deselect all'));
+  }
+
+  const btnVis = bar.querySelector('#wa-dl-btn-vis');
+  if (btnVis) {
+    const visText = getI18nMsg('barVisibleOnScreen', null, '👁️ Visible');
+    btnVis.textContent = visText;
+    btnVis.title = visText;
+    btnVis.setAttribute('aria-label', getI18nMsg('barVisibleOnScreen', null, 'Select visible messages'));
+  }
+
+  const btnTranscripts = bar.querySelector('#wa-dl-btn-transcripts');
+  if (btnTranscripts) {
+    btnTranscripts.textContent = getI18nMsg('barTranscriptsToggle', null, '📝 .txt');
+    btnTranscripts.title = getI18nMsg('barTranscriptsTitle', null, 'Include transcripts (.txt)');
+    btnTranscripts.classList.toggle('active', currentIncludeTranscripts);
+    btnTranscripts.setAttribute('aria-checked', currentIncludeTranscripts ? 'true' : 'false');
+  }
+
+  const btnClose = bar.querySelector('#wa-dl-btn-close');
+  if (btnClose) {
+    btnClose.title = getI18nMsg('barClose', null, 'Exit selection mode (Esc)');
+    btnClose.setAttribute('aria-label', getI18nMsg('barClose', null, 'Exit selection mode'));
+  }
 
   document.body.appendChild(bar);
 
   // Master Checkbox handler (persistent union memory)
-  const masterCb = document.getElementById('wa-dl-master-cb');
-  masterCb.addEventListener('change', () => {
-    const shouldCheck = masterCb.checked;
-    const allCbs = Array.from(document.querySelectorAll('.wa-dl-msg-cb'));
+  if (masterCb) {
+    masterCb.addEventListener('change', () => {
+      const shouldCheck = masterCb.checked;
+      const allCbs = Array.from(document.querySelectorAll('.wa-dl-msg-cb'));
 
-    if (shouldCheck) {
-      // Add all currently mounted messages to memory
-      allCbs.forEach(cb => {
-        cb.checked = true;
-        const target = cb.closest('.wa-dl-bubble-container, .wa-dl-message-row, [data-id]') || cb.parentElement;
-        if (target) target.classList.add('wa-dl-selected-row');
-        const id = cb.dataset.msgId;
-        if (id) {
-          selectedMessageIds.add(id);
+      if (shouldCheck) {
+        allCbs.forEach(cb => {
+          cb.checked = true;
+          const target = cb.closest('.wa-dl-bubble-container, .wa-dl-message-row, [data-id]') || cb.parentElement;
+          if (target) target.classList.add('wa-dl-selected-row');
+          const id = cb.dataset.msgId;
+          if (id) {
+            selectedMessageIds.add(id);
+            const items = extractMediaItemsFromTarget(target);
+            if (items.length > 0) selectedMediaCache.set(id, items);
+          }
+        });
+      } else {
+        selectedMessageIds.clear();
+        selectedMediaCache.clear();
+        allCbs.forEach(cb => {
+          cb.checked = false;
+          const target = cb.closest('.wa-dl-bubble-container, .wa-dl-message-row, [data-id]') || cb.parentElement;
+          if (target) target.classList.remove('wa-dl-selected-row');
+        });
+      }
+      updateSelectionActionBar();
+    });
+  }
+
+  // Category filter pills handler
+  const pills = bar.querySelectorAll('.wam-filter-pill');
+  pills.forEach(pill => {
+    pill.addEventListener('click', () => {
+      const filter = pill.dataset.filter;
+      pills.forEach(p => {
+        const isThis = p === pill;
+        p.classList.toggle('active', isThis);
+        p.setAttribute('aria-pressed', isThis ? 'true' : 'false');
+      });
+
+      const allCbs = Array.from(document.querySelectorAll('.wa-dl-msg-cb'));
+      if (filter === 'all') {
+        allCbs.forEach(cb => {
+          cb.checked = true;
+          const target = cb.closest('.wa-dl-bubble-container, .wa-dl-message-row, [data-id]') || cb.parentElement;
+          if (target) target.classList.add('wa-dl-selected-row');
+          const id = cb.dataset.msgId;
+          if (id) {
+            selectedMessageIds.add(id);
+            const items = extractMediaItemsFromTarget(target);
+            if (items.length > 0) selectedMediaCache.set(id, items);
+          }
+        });
+      } else {
+        allCbs.forEach(cb => {
+          const target = cb.closest('.wa-dl-bubble-container, .wa-dl-message-row, [data-id]') || cb.parentElement;
           const items = extractMediaItemsFromTarget(target);
-          if (items.length > 0) selectedMediaCache.set(id, items);
-        }
-      });
-    } else {
-      // Deselect all
-      selectedMessageIds.clear();
-      selectedMediaCache.clear();
-      allCbs.forEach(cb => {
-        cb.checked = false;
-        const target = cb.closest('.wa-dl-bubble-container, .wa-dl-message-row, [data-id]') || cb.parentElement;
-        if (target) target.classList.remove('wa-dl-selected-row');
-      });
-    }
-    updateSelectionActionBar();
+          const matches = items.some(item => {
+            if (filter === 'image') return item.type === 'image';
+            if (filter === 'video') return item.type === 'video';
+            if (filter === 'doc') return item.type === 'doc';
+            if (filter === 'audio') return item.type === 'audio';
+            return false;
+          });
+
+          cb.checked = matches;
+          if (target) target.classList.toggle('wa-dl-selected-row', matches);
+          const id = cb.dataset.msgId;
+          if (id) {
+            if (matches) {
+              selectedMessageIds.add(id);
+              if (items.length > 0) selectedMediaCache.set(id, items);
+            } else {
+              selectedMessageIds.delete(id);
+              selectedMediaCache.delete(id);
+            }
+          }
+        });
+      }
+      updateSelectionActionBar();
+    });
   });
 
   // "✕ None" handler
@@ -1171,20 +1431,42 @@ function renderFloatingActionBar() {
     updateSelectionActionBar();
   });
 
+  // Transcripts compact switch handler
+  const transcriptsBtn = document.getElementById('wa-dl-btn-transcripts');
+  if (transcriptsBtn) {
+    transcriptsBtn.addEventListener('click', () => {
+      currentIncludeTranscripts = !currentIncludeTranscripts;
+      transcriptsBtn.classList.toggle('active', currentIncludeTranscripts);
+      transcriptsBtn.setAttribute('aria-checked', currentIncludeTranscripts ? 'true' : 'false');
+      if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+        chrome.storage.local.set({ includeTranscripts: currentIncludeTranscripts });
+      }
+      notifySelectionState();
+    });
+  }
+
+  // Unified Main Download Button handler
+  const dlMainBtn = document.getElementById('wa-dl-btn-download-main');
+  if (dlMainBtn) {
+    dlMainBtn.addEventListener('click', () => {
+      downloadSelectedInPage(currentIncludeTranscripts);
+    });
+  }
+
   // Close / exit button
   document.getElementById('wa-dl-btn-close').addEventListener('click', () => {
     toggleSelectionMode(false);
   });
 
-  // Download media button
-  document.getElementById('wa-dl-btn-dl-media').addEventListener('click', () => {
-    downloadSelectedInPage(false);
-  });
-
-  // Download media + transcripts button
-  document.getElementById('wa-dl-btn-dl-transcripts').addEventListener('click', () => {
-    downloadSelectedInPage(true);
-  });
+  // Legacy compatibility buttons
+  const legacyMediaBtn = document.getElementById('wa-dl-btn-dl-media');
+  if (legacyMediaBtn) {
+    legacyMediaBtn.addEventListener('click', () => downloadSelectedInPage(false));
+  }
+  const legacyTranscriptsBtn = document.getElementById('wa-dl-btn-dl-transcripts');
+  if (legacyTranscriptsBtn) {
+    legacyTranscriptsBtn.addEventListener('click', () => downloadSelectedInPage(true));
+  }
 
   updateSelectionActionBar();
 }
@@ -1193,6 +1475,8 @@ function updateSelectionActionBar() {
   const badge = document.getElementById('wa-dl-count-badge');
   const masterCb = document.getElementById('wa-dl-master-cb');
   const masterText = document.getElementById('wa-dl-master-text');
+  const dlMainBtn = document.getElementById('wa-dl-btn-download-main');
+  const transcriptsBtn = document.getElementById('wa-dl-btn-transcripts');
 
   const totalSelected = selectedMessageIds.size;
   const allCbs = Array.from(document.querySelectorAll('.wa-dl-msg-cb'));
@@ -1216,19 +1500,50 @@ function updateSelectionActionBar() {
       masterCb.checked = false;
       masterCb.indeterminate = false;
       masterCb.setAttribute('aria-checked', 'false');
-      masterText.textContent = 'Select all';
+      masterText.textContent = getI18nMsg('barSelectAll', null, 'Select all');
     } else if (allCbs.length > 0 && mountedCheckedCbs.length === allCbs.length) {
       masterCb.checked = true;
       masterCb.indeterminate = false;
       masterCb.setAttribute('aria-checked', 'true');
-      masterText.textContent = 'Deselect all';
+      masterText.textContent = getI18nMsg('barDeselectAll', null, 'Deselect all');
     } else {
       masterCb.checked = false;
       masterCb.indeterminate = true;
       masterCb.setAttribute('aria-checked', 'mixed');
-      masterText.textContent = `Select all (${totalSelected} total)`;
+      masterText.textContent = getI18nMsg('barSelectAllCount', [String(totalSelected)], `Select all (${totalSelected} total)`);
     }
   }
+
+  if (dlMainBtn) {
+    const count = totalFiles > 0 ? totalFiles : totalSelected;
+    if (count === 0) {
+      dlMainBtn.textContent = getI18nMsg('btnDownload', null, 'Download Selected');
+    } else if (currentDownloadMode === 'zip') {
+      dlMainBtn.textContent = getI18nMsg('barDownloadZip', [String(count)], `📦 Download .zip (${count})`);
+    } else {
+      dlMainBtn.textContent = getI18nMsg('barDownloadIndividual', [String(count)], `📥 Download (${count})`);
+    }
+  }
+
+  if (transcriptsBtn) {
+    transcriptsBtn.classList.toggle('active', currentIncludeTranscripts);
+    transcriptsBtn.setAttribute('aria-checked', currentIncludeTranscripts ? 'true' : 'false');
+  }
+
+  notifySelectionState();
+}
+
+// Clear all active selection state and UI checkmarks
+function clearSelection() {
+  selectedMessageIds.clear();
+  selectedMediaCache.clear();
+  document.querySelectorAll('.wa-dl-msg-cb').forEach(cb => {
+    cb.checked = false;
+    cb.setAttribute('aria-checked', 'false');
+  });
+  document.querySelectorAll('.wa-dl-selected-row').forEach(r => r.classList.remove('wa-dl-selected-row'));
+  updateSelectionActionBar();
+  notifySelectionState();
 }
 
 // Download media from checked messages (using persistent memory cache)
@@ -1250,7 +1565,7 @@ async function downloadSelectedInPage(includeTranscripts = false) {
     const badge = document.getElementById('wa-dl-count-badge');
     if (badge) {
       const orig = badge.textContent;
-      badge.textContent = '⚠️ Select a message!';
+      badge.textContent = getI18nMsg('barSelectPrompt', null, '⚠️ Select a message!');
       badge.style.background = '#ea4335';
       setTimeout(() => {
         badge.textContent = orig;
@@ -1352,7 +1667,7 @@ async function downloadSelectedInPage(includeTranscripts = false) {
     }
 
     if (zipFiles.length > 0) {
-      if (badge) badge.textContent = '📦 Finalizing .zip...';
+      if (badge) badge.textContent = getI18nMsg('barZipFinalizing', null, '📦 Finalizing .zip...');
       const zipBlob = await packager.createZipBlob(zipFiles);
       const exportTime = formatHumanTimestamp(new Date());
       const zipFilename = `WA_Media_${exportTime}.zip`;
@@ -1369,10 +1684,10 @@ async function downloadSelectedInPage(includeTranscripts = false) {
       }, 3500);
 
       if (badge) {
-        badge.textContent = '✅ .zip downloaded!';
+        badge.textContent = getI18nMsg('barZipDone', null, '✅ .zip downloaded!');
         badge.style.background = '#25d366';
         setTimeout(() => {
-          badge.textContent = `${selectedMediaCache.size} selected`;
+          updateSelectionActionBar();
           badge.style.background = '';
         }, 3000);
       }
@@ -1500,13 +1815,16 @@ function injectHeaderBadge() {
     const badge = document.createElement('button');
     badge.id = 'wa-dl-header-badge';
     badge.className = `wa-dl-header-badge ${selectionModeActive ? 'active' : ''}`;
-    badge.textContent = '📥 Select Media';
-    badge.title = 'Enable message selection mode (Shift + Click to select range)';
+    badge.textContent = getI18nMsg('headerSelectMedia', null, '📥 Select Media');
+    badge.title = getI18nMsg('headerSelectMediaTooltip', null, 'Enable message selection mode (Shift + Click to select range)');
+    badge.setAttribute('aria-pressed', selectionModeActive ? 'true' : 'false');
+    badge.setAttribute('aria-label', getI18nMsg('headerSelectMediaTooltip', null, 'Enable message selection mode (Shift + Click to select range)'));
 
     badge.addEventListener('click', (e) => {
       e.preventDefault();
       remoteLog('🖱️ Clicked selection badge in WhatsApp header');
-      toggleSelectionMode();
+      const active = toggleSelectionMode();
+      badge.setAttribute('aria-pressed', active ? 'true' : 'false');
     });
 
     // Insert before the action icons in header
@@ -1529,6 +1847,11 @@ setTimeout(() => {
   ensureInPageStyles();
   injectHeaderBadge();
   attachScrollObserver();
+  if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.id) {
+    try {
+      document.documentElement.dataset.waExtensionId = chrome.runtime.id;
+    } catch (e) {}
+  }
   remoteLog('🚀 content.js initialized successfully on WhatsApp Web! URL: ' + window.location.href);
 }, 1500);
 
@@ -1548,6 +1871,40 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.action === 'toggleSelectionMode') {
     const state = toggleSelectionMode();
     sendResponse({ active: state });
+    return false;
+  }
+
+  // Get live selection state for extension popup
+  if (msg.action === 'getSelectionState') {
+    let totalFiles = 0;
+    for (const list of selectedMediaCache.values()) {
+      totalFiles += Array.isArray(list) ? list.length : (list ? 1 : 0);
+    }
+    sendResponse({
+      active: !!selectionModeActive,
+      selectedCount: selectedMessageIds.size,
+      totalFiles,
+      downloadMode: currentDownloadMode,
+      includeTranscripts: currentIncludeTranscripts
+    });
+    return false;
+  }
+
+  // Clear selection from popup
+  if (msg.action === 'clearSelection') {
+    clearSelection();
+    sendResponse({ ok: true });
+    return false;
+  }
+
+  // Trigger in-page download from popup
+  if (msg.action === 'downloadSelectedInPage') {
+    if (typeof msg.downloadMode === 'string') {
+      currentDownloadMode = msg.downloadMode;
+    }
+    const incl = typeof msg.includeTranscripts === 'boolean' ? msg.includeTranscripts : currentIncludeTranscripts;
+    downloadSelectedInPage(incl);
+    sendResponse({ ok: true, started: true });
     return false;
   }
 

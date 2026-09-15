@@ -456,3 +456,96 @@ h1 {
   outline-offset: 2px;
 }
 
+/* Synchronized Live Selection Banner */
+.live-card {
+  background: linear-gradient(135deg, rgba(37, 211, 102, 0.12), rgba(18, 140, 126, 0.16));
+  border: 1px solid rgba(37, 211, 102, 0.35);
+  border-top-color: rgba(37, 211, 102, 0.55);
+  border-radius: 14px;
+  padding: 10px 12px;
+  margin-bottom: 14px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+.live-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.live-card-badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: #25d366;
+  letter-spacing: 0.2px;
+}
+
+.live-card-count {
+  font-size: 12px;
+  font-weight: 700;
+  background: rgba(37, 211, 102, 0.25);
+  border: 1px solid rgba(37, 211, 102, 0.4);
+  color: #ffffff;
+  padding: 2px 8px;
+  border-radius: 12px;
+}
+
+.live-card-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-live-download {
+  flex: 1;
+  padding: 7px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  background: linear-gradient(135deg, #25d366, #128c7e);
+  border: 1px solid #25d366;
+  border-radius: 10px;
+  color: #ffffff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-live-download:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(37, 211, 102, 0.35);
+}
+
+.btn-live-clear {
+  padding: 7px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+  color: rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-live-clear:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+}
+
+/* Accessibility: Focus visible and Reduced Motion */
+:focus-visible {
+  outline: 2px solid #25d366 !important;
+  outline-offset: 2px !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body::before,
+  body::after {
+    animation: none !important;
+  }
+  .btn, .filter-btn, .scope-btn, .btn-live-download, .progress-fill {
+    transition: none !important;
+    transform: none !important;
+  }
+}
+
+

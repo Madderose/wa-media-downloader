@@ -55,13 +55,107 @@
     "message": "📥 Select Media",
     "description": "Header button injected into WhatsApp Web"
   },
+  "headerSelectMediaTooltip": {
+    "message": "Enable message selection mode (Shift + Click to select range)",
+    "description": "Tooltip for the header button"
+  },
+  "barSelectionLabel": {
+    "message": "Selection:",
+    "description": "Label in floating bar before count"
+  },
+  "barSelectAll": {
+    "message": "Select all",
+    "description": "Label for master checkbox when none or some selected"
+  },
+  "barDeselectAll": {
+    "message": "Deselect all",
+    "description": "Label for master checkbox when all selected"
+  },
+  "barSelectAllCount": {
+    "message": "Select all ($COUNT$ total)",
+    "description": "Label for master checkbox with count",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "12"
+      }
+    }
+  },
   "barVisibleOnScreen": {
-    "message": "👁️ Visible on screen",
+    "message": "👁️ Visible",
     "description": "Floating bar button to select visible items"
   },
   "barNone": {
     "message": "✕ None",
     "description": "Floating bar button to clear all selections"
+  },
+  "barFilterAll": {
+    "message": "All",
+    "description": "Contextual filter button for all media types"
+  },
+  "barFilterImages": {
+    "message": "🖼️ Photos",
+    "description": "Contextual filter button for images"
+  },
+  "barFilterVideos": {
+    "message": "🎥 Videos",
+    "description": "Contextual filter button for videos"
+  },
+  "barFilterDocs": {
+    "message": "📄 Docs",
+    "description": "Contextual filter button for documents"
+  },
+  "barFilterAudio": {
+    "message": "🎵 Audio",
+    "description": "Contextual filter button for audio"
+  },
+  "barTranscriptsToggle": {
+    "message": "📝 .txt",
+    "description": "Compact button toggle for transcript export"
+  },
+  "barTranscriptsTitle": {
+    "message": "Include captions & transcripts text file (.txt)",
+    "description": "Tooltip for the transcripts toggle button"
+  },
+  "barDownloadZip": {
+    "message": "📦 Download .zip ($COUNT$)",
+    "description": "Button label to download selection as a ZIP archive",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "5"
+      }
+    }
+  },
+  "barDownloadIndividual": {
+    "message": "📥 Download ($COUNT$)",
+    "description": "Button label to download selection as individual files",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "5"
+      }
+    }
+  },
+  "barSelectPrompt": {
+    "message": "⚠️ Select a message!",
+    "description": "Alert displayed when clicking download without selecting any message"
+  },
+  "barZipFinalizing": {
+    "message": "📦 Finalizing .zip...",
+    "description": "Status message while generating zip file"
+  },
+  "barZipDone": {
+    "message": "✅ .zip downloaded!",
+    "description": "Status message when zip file is downloaded"
+  },
+  "barClose": {
+    "message": "Exit selection mode (Esc)",
+    "description": "Tooltip for close button on floating bar"
+  },
+  "barMasterTooltip": {
+    "message": "Select all / Deselect all (Ctrl + A)",
+    "description": "Tooltip for master checkbox in floating bar"
   },
   "barMedia": {
     "message": "📥 Media",
@@ -90,5 +184,27 @@
   "statusZipDone": {
     "message": "✅ Done! Single .zip archive downloaded.",
     "description": "Status message when zip archive is downloaded"
+  },
+  "popupLiveSelectionActive": {
+    "message": "🎯 In-Page Selection Active:",
+    "description": "Header for live selection banner in popup"
+  },
+  "popupLiveSelectionCount": {
+    "message": "$COUNT$ message(s) selected",
+    "description": "Count of selected messages in popup live banner",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "3"
+      }
+    }
+  },
+  "popupLiveDownloadBtn": {
+    "message": "📥 Download Selection Now",
+    "description": "Button in popup to download current in-page selection"
+  },
+  "popupLiveClearBtn": {
+    "message": "Clear",
+    "description": "Button in popup to clear in-page selection"
   }
 }

@@ -8,17 +8,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ---
 
 ## [Uncommitted]
+
+## [1.5.0] - 2026-09-15
 ### Added
-- **Licensing**: Formalized project under the **GNU General Public License v3.0 (GPLv3)** ([LICENSE](LICENSE)) with explicit Meta/WhatsApp non-affiliation and trademark disclaimer.
+- **Licensing**: Formali
+zed project under the **GNU General Public License v3.0 (GPLv3)** ([LICENSE](LICENSE)) with explicit Meta/WhatsApp non-affiliation and trademark disclaimer.
 - **ZipPackager**: Pure JavaScript client-side PKZIP builder (`lib/zip-packager.js`) creating standard uncompressed STORE zip archives with CRC-32 validation, 100% Zero-Data compliance and zero external dependencies (resolves `TICKET-DOM04-002`).
 - **Download Settings**: Added accessible radio group (`role="radiogroup"`) in popup settings allowing users to toggle between default bulk single `.zip` archive download and individual file downloads.
-- **Storage Persistence**: Added `"storage"` permission in `manifest.json` and persistent user preference synchronization via `chrome.storage.local`.
-- **Testing**: Expanded automated test suite (`tests/e2e/extension-smoke.spec.mjs`) with CRC-32 verification, PKZIP signature assertions, storage permission validation, and popup radio controls (45 automated assertions).
+- **Storage Persistence**: Added `"storage"` permission in `manifest.json` and persistent user preference synchronization via `chrome.storage.local` for download format and companion transcript export.
+- **Popup UI**: Added `#liveSelectionCard` banner (`role="region"`) with `aria-live="polite"` count and direct download/clear action buttons, updating in real time when messages are selected on WhatsApp Web.
+- **Content Script**: Added contextual category filter pills (`All`, `🖼️ Photos`, `🎥 Videos`, `📄 Docs`, `🎵 Audio`) to the in-page floating action bar for instant granular filtering.
+- **WhatsApp Web Mock Simulation**: Implemented realistic local DOM fixture (`tests/fixtures/whatsapp-mock.html`) replicating WhatsApp Web message containers, headers, media blobs (image, video, voice audio, document), and theme structures for 100% offline testing.
+- **Playwright E2E Test Suite**: Added headless browser test suite (`tests/e2e/whatsapp-interaction.spec.mjs`, `npm run test:playwright`) validating 7 scenarios across 19 assertions (header injection, selection toggle, `Shift + Click` continuous range selection, category filter pills, tri-state master checkbox, `Escape` key dismissal, and live popup synchronization).
+- **Testing**: Expanded automated test suite to 91 passing assertions (72 smoke/integrity tests + 19 Playwright E2E simulation tests) via `npm test`.
 
 ### Changed
-- **Content Script**: Default bulk download behavior now automatically packages all selected media (and optional companion transcripts) into a single archive `WA_Media_YYYY-MM-DD_HHhmm.zip`, completely eliminating multiple browser download confirmation prompts.
-- **Popup UI**: Synchronized download format preference between popup settings and in-page floating control bar.
-- **Internationalization**: Added bilingual translations (EN/FR) for download format settings and zipping status messages.
+- **Content Script**: Unified download controls into a single dynamic action button (`#wa-dl-btn-download-main`) and a compact `.txt` transcript switch (`#wa-dl-btn-transcripts`, `role="switch"`), eliminating bloated duplicate buttons and optimizing screen real estate for smaller viewports (e.g., Steam Deck 1280x800).
+- **Content Script**: Full dynamic theming using `--wam-...` CSS custom properties adapting cleanly to both WhatsApp Web Light and Dark mode (`body.dark`).
+- **Content Script**: Added bidirectional live messaging (`getSelectionState`, `clearSelection`, `selectionStateChanged`) keeping popup and in-page state in perfect sync.
+- **Content Script**: Exposes extension ID via `document.documentElement.dataset.waExtensionId` for robust diagnostic discovery and automated testing.
+- **Popup UI**: Added `getTargetWhatsAppTab()` helper ensuring reliable communication with WhatsApp Web tabs in both toolbar popup and standalone tab/test environments.
+- **Internationalization**: Fully localized in-page floating bar labels, buttons, tooltips, category filter pills, and live selection banners into English and French.
+- **Security & Quality**: Eliminated unsafe template assignments in `content.js` to achieve strict `0 errors, 0 warnings` on `web-ext lint`.
 
 ## [1.4.0] - 2026-09-15
 ### Added

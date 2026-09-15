@@ -14,10 +14,13 @@
 - ⚡ **Shift + Click Range Selection**: Click a message, hold `Shift`, and click another message: all media messages in between are selected instantly.
 - 🎛️ **Floating Control Bar**:
   - **Master Checkbox**: Standard tri-state checkbox (`[ ] Select all`, `[-] Partial`, `[✓] Deselect all`).
+  - **Category Filter Pills**: Quick one-tap contextual filtering for **`All`**, **`🖼️ Photos`**, **`🎥 Videos`**, **`📄 Docs`**, and **`🎵 Audio`**.
   - **`✕ None`**: Instant one-click deselection of all messages.
   - **`👁️ Visible on screen`**: Select only messages currently in the viewport.
-  - **`📥 Media`**: Download all selected media files directly.
-  - **`📝 Media + Transcripts`**: Download media files accompanied by a structured companion text summary containing dates, senders, captions, and voice message transcriptions.
+  - **Dynamic Action Button**: Clear, responsive download button displaying live count and chosen mode (`📦 Download .zip (X)` or `📥 Download (X)`).
+  - **Compact `📝 .txt` Toggle**: Switch companion text transcript exports on or off with a single click.
+  - **Adaptive Theming**: Seamlessly adapts colors, contrast, and glassmorphism styling to both WhatsApp Web Light and Dark themes (`body.dark`).
+- 🔄 **Real-Time Popup Synchronization**: When messages are selected in the chat, the extension popup displays a live **🎯 In-Page Selection Active** card showing the exact message count, with direct **Download Selected Now** and **Clear** action buttons.
 - 🏷️ **Human-Readable Timestamps**:
   - Files are saved with clear, chronological, filesystem-safe timestamps:
     - Images: `WA_IMG_YYYY-MM-DD_HHhmm.jpg` (e.g. `WA_IMG_2026-09-15_15h30.jpg`)
@@ -73,14 +76,45 @@ The extension is pre-configured for Mozilla Add-on Developer Hub submission with
 ### Method 1: In-Page Selection (Recommended)
 1. Open [WhatsApp Web](https://web.whatsapp.com) and open any conversation.
 2. Click **`📥 Select Media`** in the conversation header.
-3. Check individual messages or use `Shift + Click` to select a range.
-4. Click **`📥 Media`** or **`📝 Media + Transcripts`** in the bottom floating bar.
+3. Check individual messages, click category filter pills (`Photos`, `Videos`, `Docs`, `Audio`), or use `Shift + Click` to select a range.
+4. Toggle `📝 .txt` if companion transcripts are needed.
+5. Click the unified download button (`📦 Download .zip` or `📥 Download`) in the floating control bar (or directly from the extension popup banner).
 
 ### Method 2: Extension Popup
 1. Click the extension icon in your browser toolbar.
 2. Select your scope (**Entire chat** or **Visible on screen**).
 3. Click **Scan** to detect available documents, images, videos, and audio.
 4. Filter the media types you wish to download, then click **Download Selected**.
+
+---
+
+## 🧪 Automated Testing & WhatsApp Web Mock
+
+Because Meta does **not** provide a developer sandbox or mock environment for the consumer WhatsApp Web client (`web.whatsapp.com`) — their developer sandbox only covers the backend WhatsApp Business REST Cloud API — this project includes a **realistic local DOM mock fixture** (`tests/fixtures/whatsapp-mock.html`).
+
+This mock accurately simulates WhatsApp Web's conversation headers, message containers, media bubbles (images, videos, voice notes, documents), plain text messages, dark mode, and dynamic local `blob:` URLs, enabling **100% offline, zero-data automated testing** without requiring real accounts or physical phones.
+
+### Running Tests
+
+```bash
+# Run all automated tests (Smoke integrity + Playwright simulation)
+npm test
+
+# Run the Playwright headless Chromium E2E suite
+npm run test:playwright
+
+# Run the fast DOM, manifest & security smoke suite
+npm run test:e2e
+```
+
+### Playwright E2E Test Scenarios (`npm run test:playwright`)
+1. **Header Injection**: Verifies automatic injection of the `📥 Select Media` badge into `#main header`.
+2. **Selection Toggle**: Verifies that clicking the badge toggles `aria-pressed="true"`, reveals the floating action bar, and injects checkboxes onto media items (while ignoring plain text).
+3. **Range Selection (`Shift + Click`)**: Verifies continuous multi-message selection between two points and counter updates.
+4. **Category Filter Pills**: Verifies that clicking `Photos` isolates images and `All` selects all media.
+5. **Master Tri-State Checkbox**: Verifies `✕ None` clearing, indeterminate/mixed states, and master toggle.
+6. **Keyboard Dismissal (`Escape`)**: Verifies pressing `Escape` cleanly dismisses the floating bar and resets the header badge.
+7. **Live Popup Synchronization**: Verifies bidirectional state synchronization between the in-page selection and the extension popup toolbar UI.
 
 ---
 

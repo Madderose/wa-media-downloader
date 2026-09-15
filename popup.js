@@ -28,12 +28,23 @@ let currentDownloadMode = 'zip'; // 'zip' (default) or 'individual'
 
 // --- Storage & Download Mode Initialization ---
 if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
-  chrome.storage.local.get({ downloadMode: 'zip' }, (res) => {
+  chrome.storage.local.get({ downloadMode: 'zip', includeTranscripts: true }, (res) => {
     currentDownloadMode = (res && res.downloadMode) || 'zip';
     if (currentDownloadMode === 'individual') {
       if (modeIndividualRadio) modeIndividualRadio.checked = true;
     } else {
       if (modeZipRadio) modeZipRadio.checked = true;
+    }
+    if (includeTranscriptsCb && res && typeof res.includeTranscripts === 'boolean') {
+      includeTranscriptsCb.checked = res.includeTranscripts;
+    }
+  });
+}
+
+if (includeTranscriptsCb) {
+  includeTranscriptsCb.addEventListener('change', () => {
+    if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+      chrome.storage.local.set({ includeTranscripts: includeTranscriptsCb.checked });
     }
   });
 }
@@ -60,6 +71,87 @@ if (modeIndividualRadio) {
   });
 }
 
+// --- Synchronized Live In-Page Selection ---
+const liveSelectionCard = document.getElementById('liveSelectionCard');
+const liveSelectionCount = document.getElementById('liveSelectionCount');
+const liveDownloadBtn = document.getElementById('liveDownloadBtn');
+const liveClearBtn = document.getElementById('liveClearBtn');
+
+async function getTargetWhatsAppTab() {
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (tab && tab.url && tab.url.includes('web.whatsapp.com')) {
+      return tab;
+    }
+    const waTabs = await chrome.tabs.query({ url: '*://web.whatsapp.com/*' });
+    return (waTabs && waTabs.length > 0) ? waTabs[0] : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+async function checkLiveSelection() {
+  if (!liveSelectionCard || typeof chrome === 'undefined' || !chrome.tabs) return;
+  try {
+    const tab = await getTargetWhatsAppTab();
+    if (!tab || !tab.id) {
+      liveSelectionCard.style.display = 'none';
+      return;
+    }
+    currentTab = tab;
+    chrome.tabs.sendMessage(tab.id, { action: 'getSelectionState' }, (res) => {
+      if (chrome.runtime.lastError || !res) {
+        liveSelectionCard.style.display = 'none';
+        return;
+      }
+      updateLiveSelectionUI(res);
+    });
+  } catch (e) {
+    liveSelectionCard.style.display = 'none';
+  }
+}
+
+function updateLiveSelectionUI(state) {
+  if (!liveSelectionCard) return;
+  if (state && state.active && state.selectedCount > 0) {
+    liveSelectionCard.style.display = 'block';
+    if (liveSelectionCount) {
+      const countMsg = chrome.i18n?.getMessage('popupLiveSelectionCount', [String(state.selectedCount)]);
+      liveSelectionCount.textContent = countMsg || `${state.selectedCount} selected`;
+    }
+  } else {
+    liveSelectionCard.style.display = 'none';
+  }
+}
+
+if (liveDownloadBtn) {
+  liveDownloadBtn.addEventListener('click', async () => {
+    const tab = await getTargetWhatsAppTab();
+    if (!tab || !tab.id) return;
+    liveDownloadBtn.disabled = true;
+    chrome.tabs.sendMessage(tab.id, {
+      action: 'downloadSelectedInPage',
+      includeTranscripts: !!(includeTranscriptsCb && includeTranscriptsCb.checked),
+      downloadMode: currentDownloadMode
+    }, () => {
+      setTimeout(() => {
+        liveDownloadBtn.disabled = false;
+        checkLiveSelection();
+      }, 1200);
+    });
+  });
+}
+
+if (liveClearBtn) {
+  liveClearBtn.addEventListener('click', async () => {
+    const tab = await getTargetWhatsAppTab();
+    if (!tab || !tab.id) return;
+    chrome.tabs.sendMessage(tab.id, { action: 'clearSelection' }, () => {
+      checkLiveSelection();
+    });
+  });
+}
+
 // --- Internationalization (i18n) Helper ---
 function applyI18n() {
   document.querySelectorAll('[data-i18n]').forEach(el => {
@@ -70,8 +162,12 @@ function applyI18n() {
     }
   });
 }
-document.addEventListener('DOMContentLoaded', applyI18n);
+document.addEventListener('DOMContentLoaded', () => {
+  applyI18n();
+  checkLiveSelection();
+});
 applyI18n();
+checkLiveSelection();
 
 // --- Scope Selector: All Chat vs Visible Screen ---
 if (scopeAllBtn && scopeVisibleBtn) {
@@ -354,6 +450,10 @@ chrome.runtime.onMessage.addListener((msg) => {
       }
       downloadBtn.disabled = false;
     }
+  }
+
+  if (msg.action === 'selectionStateChanged') {
+    updateLiveSelectionUI(msg);
   }
 });
 

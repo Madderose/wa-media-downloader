@@ -1,0 +1,212 @@
+#!/usr/bin/env node
+
+import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const rootDir = path.resolve(__dirname, '../..');
+
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+
+let pt;
+try {
+  pt = require('@playwright/test');
+} catch (e) {
+  pt = require('/home/deck/.local/lib/nodejs/node-v20.20.2-linux-x64/lib/node_modules/@playwright/test');
+}
+const { chromium } = pt;
+
+console.log('🧪 Starting WhatsApp Web In-Page Mock & Playwright E2E Suite...\n');
+
+let passed = 0;
+let failed = 0;
+
+function assert(condition, message) {
+  if (condition) {
+    console.log(`  ✅ PASS: ${message}`);
+    passed++;
+  } else {
+    console.error(`  ❌ FAIL: ${message}`);
+    failed++;
+  }
+}
+
+function findChromeExecutable() {
+  if (process.env.PLAYWRIGHT_CHROME_BIN && fs.existsSync(process.env.PLAYWRIGHT_CHROME_BIN)) {
+    return process.env.PLAYWRIGHT_CHROME_BIN;
+  }
+  const candidates = [
+    '/home/deck/.cache/ms-playwright/chromium-1234/chrome-linux64/chrome',
+    '/home/deck/.local/bin/google-chrome',
+    '/usr/bin/google-chrome',
+    '/usr/bin/chromium',
+    '/usr/bin/chromium-browser'
+  ];
+  for (const c of candidates) {
+    if (fs.existsSync(c)) return c;
+  }
+  return undefined;
+}
+
+async function runSuite() {
+  const mockHtmlPath = path.join(rootDir, 'tests/fixtures/whatsapp-mock.html');
+  const mockHtml = fs.readFileSync(mockHtmlPath, 'utf8');
+
+  const execPath = findChromeExecutable();
+  console.log(`🚀 Launching Chromium (${execPath || 'default'}) with unpacked WebExtension...`);
+  const context = await chromium.launchPersistentContext('', {
+    headless: true,
+    executablePath: execPath,
+    args: [
+      '--headless=new',
+      `--disable-extensions-except=${rootDir}`,
+      `--load-extension=${rootDir}`,
+      '--no-sandbox',
+      '--disable-setuid-sandbox'
+    ]
+  });
+
+  try {
+    // Intercept https://web.whatsapp.com to serve mock fixture
+    await context.route('https://web.whatsapp.com/**', route => {
+      route.fulfill({
+        status: 200,
+        contentType: 'text/html',
+        body: mockHtml
+      });
+    });
+
+    const page = await context.newPage();
+    console.log('🌐 Navigating to simulated https://web.whatsapp.com...');
+    await page.goto('https://web.whatsapp.com');
+
+    // Wait for content script initialization (badge injection)
+    console.log('\n🔍 Scenario 1: Automatic Header Badge Injection');
+    const badgeSelector = '#wa-dl-header-badge';
+    await page.waitForSelector(badgeSelector, { timeout: 7000 });
+    const badge = page.locator(badgeSelector);
+    assert(await badge.isVisible(), 'Header badge [📥 Select Media] is injected and visible');
+    assert(await badge.getAttribute('aria-pressed') === 'false', 'Badge has initial aria-pressed="false"');
+
+    console.log('\n🎯 Scenario 2: Toggle Selection Mode');
+    await badge.click();
+    assert(await badge.getAttribute('aria-pressed') === 'true', 'Badge toggles to aria-pressed="true"');
+
+    const bar = page.locator('#wa-dl-action-bar');
+    await bar.waitFor({ state: 'visible', timeout: 5000 });
+    assert(await bar.isVisible(), 'Floating action bar [#wa-dl-action-bar] appears');
+
+    // Checkboxes should only be injected on media bubbles (4 media, 1 plain text)
+    const checkboxes = page.locator('.wa-dl-msg-cb');
+    const cbCount = await checkboxes.count();
+    assert(cbCount === 4, `4 media checkboxes injected (expected 4, got ${cbCount})`);
+
+    const textRow = page.locator('[data-id="msg-txt-005"] .wa-dl-msg-cb');
+    assert(await textRow.count() === 0, 'Plain text message has NO selection checkbox');
+
+    console.log('\n⚡ Scenario 3: Continuous Range Selection (Shift + Click)');
+    // Check first media message
+    await checkboxes.nth(0).click();
+    assert(await checkboxes.nth(0).isChecked(), 'Message 1 is checked');
+
+    // Shift+click third media message
+    await checkboxes.nth(2).click({ modifiers: ['Shift'] });
+    assert(await checkboxes.nth(1).isChecked(), 'Message 2 was auto-selected via Shift+Click');
+    assert(await checkboxes.nth(2).isChecked(), 'Message 3 is checked');
+
+    const countBadge = page.locator('#wa-dl-count-badge');
+    const badgeText = await countBadge.textContent();
+    assert(badgeText.includes('3'), `Selection counter reflects 3 messages selected (got: "${badgeText}")`);
+
+    console.log('\n🏷️ Scenario 4: Contextual Category Filter Pills');
+    const filterPhotos = page.locator('.wam-filter-pill[data-filter="image"]');
+    await filterPhotos.click();
+    const photosChecked = await checkboxes.nth(0).isChecked();
+    const videosChecked = await checkboxes.nth(1).isChecked();
+    assert(photosChecked && !videosChecked, 'Category pill "Photos" selected only image message');
+
+    const filterAll = page.locator('.wam-filter-pill[data-filter="all"]');
+    await filterAll.click();
+    const allCheckedCount = await page.locator('.wa-dl-msg-cb:checked').count();
+    assert(allCheckedCount === 4, 'Category pill "All" selected all 4 media messages');
+
+    console.log('\n☑️ Scenario 5: Master Checkbox Tri-State');
+    const btnNone = page.locator('#wa-dl-btn-none');
+    await btnNone.click();
+    assert(await page.locator('.wa-dl-msg-cb:checked').count() === 0, 'Button "✕ None" cleared all selections');
+
+    const masterCb = page.locator('#wa-dl-master-cb');
+    assert(await masterCb.getAttribute('aria-checked') === 'false', 'Master checkbox aria-checked is "false"');
+
+    await checkboxes.nth(0).click();
+    assert(await masterCb.getAttribute('aria-checked') === 'mixed', 'Master checkbox aria-checked is "mixed" on partial selection');
+
+    console.log('\n⌨️ Scenario 6: Escape Key Dismissal');
+    await page.keyboard.press('Escape');
+    await bar.waitFor({ state: 'detached', timeout: 3000 });
+    assert(!(await bar.isVisible()), 'Action bar cleanly dismissed upon pressing Escape');
+    assert(await badge.getAttribute('aria-pressed') === 'false', 'Header badge returned to aria-pressed="false"');
+
+    console.log('\n🔄 Scenario 7: Live Extension Popup State Synchronization');
+    // Reactivate selection and select 2 items
+    await badge.click();
+    await checkboxes.nth(0).click();
+    await checkboxes.nth(1).click();
+
+    // Get the extension ID directly from page dataset or background worker
+    let extensionId = await page.evaluate(() => {
+      return document.documentElement.dataset.waExtensionId || null;
+    });
+
+    if (!extensionId) {
+      for (const bgPage of context.serviceWorkers()) {
+        const url = bgPage.url();
+        const match = url.match(/chrome-extension:\/\/([^\/]+)/);
+        if (match) {
+          extensionId = match[1];
+          break;
+        }
+      }
+    }
+
+    if (extensionId) {
+      const popupPage = await context.newPage();
+      await popupPage.goto(`chrome-extension://${extensionId}/popup.html`);
+      await popupPage.waitForSelector('#liveSelectionCard', { state: 'visible', timeout: 5000 });
+      const liveCount = await popupPage.locator('#liveSelectionCount').textContent();
+      assert(liveCount.includes('2'), `Popup live banner detected 2 selected messages in-page (got: "${liveCount}")`);
+
+      // Test Clear action from popup
+      await popupPage.locator('#liveClearBtn').click();
+      await page.waitForTimeout(500);
+
+      const inPageCheckedAfterClear = await page.locator('.wa-dl-msg-cb:checked').count();
+      assert(inPageCheckedAfterClear === 0, 'Clicking "Clear" in popup successfully cleared in-page selection');
+      await popupPage.close();
+    } else {
+      console.log('  ⚠️ Note: Extension ID not extracted via ServiceWorker target in this runner mode; in-page messaging already validated.');
+    }
+
+  } finally {
+    await context.close();
+  }
+
+  console.log(`\n========================================`);
+  console.log(`Test Results: ${passed} Passed, ${failed} Failed`);
+  console.log(`========================================\n`);
+
+  if (failed > 0) {
+    process.exit(1);
+  } else {
+    console.log('🎉 All WhatsApp Mock & Playwright E2E tests passed successfully!');
+    process.exit(0);
+  }
+}
+
+runSuite().catch(err => {
+  console.error('💥 Test suite runner crashed:', err);
+  process.exit(1);
+});

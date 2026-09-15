@@ -1,6 +1,6 @@
 {
   "name": "wa-media-downloader",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "description": "Bulk download media from the current WhatsApp Web chat.",
   "license": "GPL-3.0-or-later",
   "author": "Madderose <hopp.jonas@gmail.com>",
@@ -12,7 +12,8 @@
     "build": "npx -y web-ext build --overwrite-dest",
     "version:bump": "node scripts/bump-version.mjs",
     "test:e2e": "node tests/e2e/extension-smoke.spec.mjs",
-    "test": "npm run test:e2e",
+    "test:playwright": "node tests/e2e/whatsapp-interaction.spec.mjs",
+    "test": "npm run test:e2e && npm run test:playwright",
     "log:server": "node scripts/log_server.mjs",
     "log:listen": "node scripts/listen_console.mjs"
   },

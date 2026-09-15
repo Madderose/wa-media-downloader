@@ -55,13 +55,107 @@
     "message": "📥 Sélectionner Médias",
     "description": "Bouton d'en-tête injecté dans WhatsApp Web"
   },
+  "headerSelectMediaTooltip": {
+    "message": "Activer le mode sélection de messages (Shift + Clic pour sélectionner un intervalle)",
+    "description": "Infobulle du bouton d'en-tête"
+  },
+  "barSelectionLabel": {
+    "message": "Sélection :",
+    "description": "Libellé de sélection dans la barre flottante"
+  },
+  "barSelectAll": {
+    "message": "Tout sélectionner",
+    "description": "Libellé de la case principale quand rien n'est coché"
+  },
+  "barDeselectAll": {
+    "message": "Tout désélectionner",
+    "description": "Libellé de la case principale quand tout est coché"
+  },
+  "barSelectAllCount": {
+    "message": "Tout sélectionner ($COUNT$ au total)",
+    "description": "Libellé de la case principale avec nombre",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "12"
+      }
+    }
+  },
   "barVisibleOnScreen": {
-    "message": "👁️ Visibles à l'écran",
-    "description": "Bouton de la barre flottante pour sélectionner les visibles"
+    "message": "👁️ Visibles",
+    "description": "Bouton pour sélectionner les messages visibles"
   },
   "barNone": {
     "message": "✕ Aucun",
-    "description": "Bouton de la barre flottante pour tout désélectionner"
+    "description": "Bouton pour désélectionner tous les messages"
+  },
+  "barFilterAll": {
+    "message": "Tous",
+    "description": "Bouton de filtre pour tous les types"
+  },
+  "barFilterImages": {
+    "message": "🖼️ Photos",
+    "description": "Bouton de filtre pour les images"
+  },
+  "barFilterVideos": {
+    "message": "🎥 Vidéos",
+    "description": "Bouton de filtre pour les vidéos"
+  },
+  "barFilterDocs": {
+    "message": "📄 Docs",
+    "description": "Bouton de filtre pour les documents"
+  },
+  "barFilterAudio": {
+    "message": "🎵 Audio",
+    "description": "Bouton de filtre pour l'audio"
+  },
+  "barTranscriptsToggle": {
+    "message": "📝 .txt",
+    "description": "Bouton toggle compact pour l'export des transcriptions"
+  },
+  "barTranscriptsTitle": {
+    "message": "Inclure le fichier de légendes et transcriptions (.txt)",
+    "description": "Infobulle du bouton toggle des transcriptions"
+  },
+  "barDownloadZip": {
+    "message": "📦 Télécharger .zip ($COUNT$)",
+    "description": "Bouton pour télécharger la sélection sous forme d'archive ZIP",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "5"
+      }
+    }
+  },
+  "barDownloadIndividual": {
+    "message": "📥 Télécharger ($COUNT$)",
+    "description": "Bouton pour télécharger les fichiers individuellement",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "5"
+      }
+    }
+  },
+  "barSelectPrompt": {
+    "message": "⚠️ Sélectionnez un message !",
+    "description": "Alerte quand aucun message n'est sélectionné lors du clic sur télécharger"
+  },
+  "barZipFinalizing": {
+    "message": "📦 Création du .zip...",
+    "description": "Message pendant la génération du fichier zip"
+  },
+  "barZipDone": {
+    "message": "✅ .zip téléchargé !",
+    "description": "Message après le téléchargement du zip"
+  },
+  "barClose": {
+    "message": "Quitter le mode sélection (Échap)",
+    "description": "Infobulle pour le bouton de fermeture de la barre"
+  },
+  "barMasterTooltip": {
+    "message": "Tout sélectionner / Tout désélectionner (Ctrl + A)",
+    "description": "Infobulle pour la case à cocher principale"
   },
   "barMedia": {
     "message": "📥 Médias",
@@ -90,5 +184,27 @@
   "statusZipDone": {
     "message": "✅ Terminé ! Archive .zip téléchargée.",
     "description": "Message de statut après le téléchargement de l'archive zip"
+  },
+  "popupLiveSelectionActive": {
+    "message": "🎯 Sélection active sur WhatsApp :",
+    "description": "En-tête de la bannière de sélection synchronisée dans le popup"
+  },
+  "popupLiveSelectionCount": {
+    "message": "$COUNT$ média(s) sélectionné(s)",
+    "description": "Nombre de médias sélectionnés dans la bannière du popup",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "3"
+      }
+    }
+  },
+  "popupLiveDownloadBtn": {
+    "message": "📥 Télécharger la sélection",
+    "description": "Bouton dans le popup pour lancer le téléchargement de la sélection en page"
+  },
+  "popupLiveClearBtn": {
+    "message": "Vider",
+    "description": "Bouton dans le popup pour vider la sélection"
   }
 }

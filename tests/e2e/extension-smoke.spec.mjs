@@ -73,11 +73,22 @@ assert(enKeys.includes('settingDownloadModeZip'), 'English locale contains setti
 assert(frKeys.includes('settingDownloadModeZip'), 'French locale contains settingDownloadModeZip');
 assert(enKeys.includes('settingDownloadModeIndividual'), 'English locale contains settingDownloadModeIndividual');
 assert(frKeys.includes('settingDownloadModeIndividual'), 'French locale contains settingDownloadModeIndividual');
+assert(enKeys.includes('popupLiveSelectionActive'), 'English locale contains popupLiveSelectionActive');
+assert(frKeys.includes('popupLiveSelectionActive'), 'French locale contains popupLiveSelectionActive');
+assert(enKeys.includes('popupLiveDownloadBtn'), 'English locale contains popupLiveDownloadBtn');
+assert(frKeys.includes('popupLiveDownloadBtn'), 'French locale contains popupLiveDownloadBtn');
+assert(enKeys.includes('headerSelectMedia'), 'English locale contains headerSelectMedia');
+assert(frKeys.includes('headerSelectMedia'), 'French locale contains headerSelectMedia');
+assert(enKeys.includes('barDownloadZip'), 'English locale contains barDownloadZip');
+assert(frKeys.includes('barDownloadZip'), 'French locale contains barDownloadZip');
+assert(enKeys.includes('barFilterImages'), 'English locale contains barFilterImages');
+assert(frKeys.includes('barFilterImages'), 'French locale contains barFilterImages');
 
-// --- TEST 3: Zero-Data & Network Security Check ---
+// --- TEST 3: Zero-Data & Network Privacy Audit ---
 console.log('\n🛡️ Test Suite 3: Zero-Data & Network Privacy Audit');
 const backgroundCode = fs.readFileSync(path.join(rootDir, 'background.js'), 'utf8');
 const contentCode = fs.readFileSync(path.join(rootDir, 'content.js'), 'utf8');
+const uiCss = fs.readFileSync(path.join(rootDir, 'ui.css'), 'utf8');
 
 assert(backgroundCode.includes('const DEBUG_SERVER_LOGS = false;'), 'background.js has DEBUG_SERVER_LOGS disabled by default');
 assert(contentCode.includes('const DEBUG_SERVER_LOGS = false;'), 'content.js has DEBUG_SERVER_LOGS disabled by default');
@@ -95,16 +106,29 @@ assert(popupHtml.includes('id="scopeVisible"') && popupHtml.includes('aria-press
 assert(popupHtml.includes('role="radiogroup"'), 'Download format settings container has role="radiogroup"');
 assert(popupHtml.includes('id="modeZip"') && popupHtml.includes('value="zip"'), 'Mode zip radio button defined');
 assert(popupHtml.includes('id="modeIndividual"') && popupHtml.includes('value="individual"'), 'Mode individual radio button defined');
+assert(popupHtml.includes('id="liveSelectionCard"') && popupHtml.includes('role="region"'), 'Popup contains #liveSelectionCard with role="region"');
+assert(popupHtml.includes('id="liveSelectionCount"') && popupHtml.includes('aria-live="polite"'), 'Popup contains #liveSelectionCount with aria-live="polite"');
+assert(popupHtml.includes('id="liveDownloadBtn"'), 'Popup contains #liveDownloadBtn');
+assert(popupHtml.includes('id="liveClearBtn"'), 'Popup contains #liveClearBtn');
+assert(popupHtml.includes('id="includeTranscriptsCb"'), 'Popup contains #includeTranscriptsCb setting checkbox');
 assert(popupHtml.includes('src="lib/zip-packager.js"'), 'Popup HTML loads lib/zip-packager.js');
 assert(popupHtml.includes('rel="noopener noreferrer"'), 'External links enforce rel="noopener noreferrer"');
 
-// --- TEST 5: Content Script Injected UI & Keyboard Accessibility ---
-console.log('\n⌨️ Test Suite 5: Injected UI & Tri-state ARIA Logic');
+// --- TEST 5: Content Script Injected UI, Theming & Accessibility ---
+console.log('\n⌨️ Test Suite 5: Injected UI, Theming & Accessibility');
 assert(contentCode.includes("masterCb.setAttribute('aria-checked', 'mixed')"), 'content.js supports aria-checked="mixed" for tri-state selection');
 assert(contentCode.includes("masterCb.indeterminate = true;"), 'content.js sets DOM indeterminate state on partial selection');
 assert(contentCode.includes("window.addEventListener('keydown', (e) => {"), 'content.js registers global keydown listener');
 assert(contentCode.includes("e.key === 'Escape'"), 'content.js handles Escape key to dismiss selection mode');
 assert(contentCode.includes("currentDownloadMode"), 'content.js tracks currentDownloadMode');
+assert(contentCode.includes("notifySelectionState"), 'content.js dispatches live selection notifications');
+assert(contentCode.includes("clearSelection"), 'content.js supports programmatic selection clearing');
+assert(contentCode.includes("getSelectionState"), 'content.js handles getSelectionState queries');
+assert(contentCode.includes("downloadSelectedInPage"), 'content.js handles in-page download execution');
+assert(contentCode.includes("--wam-bar-bg"), 'content.js implements theme-aware CSS custom properties');
+assert(uiCss.includes(".live-card"), 'ui.css defines styles for live selection card');
+assert(uiCss.includes(":focus-visible"), 'ui.css implements :focus-visible outlines');
+assert(uiCss.includes("prefers-reduced-motion"), 'ui.css respects prefers-reduced-motion');
 
 // --- TEST 6: Zero-Dependency ZipPackager Binary Integrity ---
 console.log('\n📦 Test Suite 6: PKZIP Binary Packager Integrity & CRC32');
