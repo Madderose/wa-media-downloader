@@ -1,0 +1,74 @@
+{
+  "extensionName": {
+    "message": "WA Media Downloader",
+    "description": "Nom de l'extension"
+  },
+  "extensionDescription": {
+    "message": "Téléchargez facilement les médias de vos discussions WhatsApp Web.",
+    "description": "Description de l'extension"
+  },
+  "scopeAll": {
+    "message": "💬 Toute la discussion",
+    "description": "Bouton pour scanner toute la discussion"
+  },
+  "scopeVisible": {
+    "message": "👁️ Écran visible",
+    "description": "Bouton pour scanner uniquement les messages visibles"
+  },
+  "optionTranscripts": {
+    "message": "📝 Télécharger légendes & transcriptions (.txt)",
+    "description": "Option pour exporter le fichier de synthèse"
+  },
+  "btnScan": {
+    "message": "Scanner",
+    "description": "Bouton de scan"
+  },
+  "btnDownload": {
+    "message": "Télécharger la sélection",
+    "description": "Bouton de téléchargement des médias sélectionnés"
+  },
+  "btnCancel": {
+    "message": "✕ Annuler",
+    "description": "Bouton d'annulation de téléchargement"
+  },
+  "btnSelectMode": {
+    "message": "🎯 Mode Sélection WhatsApp (Shift + Clic)",
+    "description": "Bouton pour basculer la sélection interactive"
+  },
+  "statusReady": {
+    "message": "Prêt",
+    "description": "Message de statut initial"
+  },
+  "statusOpenWA": {
+    "message": "Veuillez d'abord ouvrir WhatsApp Web.",
+    "description": "Alerte quand WhatsApp Web n'est pas ouvert"
+  },
+  "statusSelectionEnabled": {
+    "message": "✅ Sélection activée sur WhatsApp !",
+    "description": "Statut quand la sélection en page est activée"
+  },
+  "statusSelectionDisabled": {
+    "message": "Sélection désactivée.",
+    "description": "Statut quand la sélection en page est désactivée"
+  },
+  "headerSelectMedia": {
+    "message": "📥 Sélectionner Médias",
+    "description": "Bouton d'en-tête injecté dans WhatsApp Web"
+  },
+  "barVisibleOnScreen": {
+    "message": "👁️ Visibles à l'écran",
+    "description": "Bouton de la barre flottante pour sélectionner les visibles"
+  },
+  "barNone": {
+    "message": "✕ Aucun",
+    "description": "Bouton de la barre flottante pour tout désélectionner"
+  },
+  "barMedia": {
+    "message": "📥 Médias",
+    "description": "Bouton de la barre flottante pour télécharger les médias"
+  },
+  "barMediaTranscripts": {
+    "message": "📝 Médias + Transcripts",
+    "description": "Bouton de la barre flottante pour télécharger avec transcriptions"
+  }
+}

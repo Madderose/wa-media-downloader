@@ -14,6 +14,76 @@ let currentTab = null;
 let selected = { docs: false, images: false, videos: false, audio: false };
 let selectedDocExts = {};
 let cancelRequested = false;
+let doneCount = 0;
+let currentScope = 'all'; // 'all' or 'visible'
+
+const scopeAllBtn = document.getElementById('scopeAll');
+const scopeVisibleBtn = document.getElementById('scopeVisible');
+const toggleSelectBtn = document.getElementById('toggleSelectBtn');
+const includeTranscriptsCb = document.getElementById('includeTranscriptsCb');
+
+// --- Internationalization (i18n) Helper ---
+function applyI18n() {
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.dataset.i18n;
+    if (chrome && chrome.i18n && chrome.i18n.getMessage) {
+      const msg = chrome.i18n.getMessage(key);
+      if (msg) el.textContent = msg;
+    }
+  });
+}
+document.addEventListener('DOMContentLoaded', applyI18n);
+applyI18n();
+
+// --- Scope Selector: All Chat vs Visible Screen ---
+if (scopeAllBtn && scopeVisibleBtn) {
+  scopeAllBtn.addEventListener('click', () => {
+    currentScope = 'all';
+    scopeAllBtn.classList.add('active');
+    scopeAllBtn.setAttribute('aria-pressed', 'true');
+    scopeVisibleBtn.classList.remove('active');
+    scopeVisibleBtn.setAttribute('aria-pressed', 'false');
+  });
+
+  scopeVisibleBtn.addEventListener('click', () => {
+    currentScope = 'visible';
+    scopeVisibleBtn.classList.add('active');
+    scopeVisibleBtn.setAttribute('aria-pressed', 'true');
+    scopeAllBtn.classList.remove('active');
+    scopeAllBtn.setAttribute('aria-pressed', 'false');
+  });
+}
+
+// --- Toggle In-Page Selection Mode on WhatsApp Web ---
+if (toggleSelectBtn) {
+  toggleSelectBtn.addEventListener('click', async () => {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!tab || (tab.url && !tab.url.includes('web.whatsapp.com'))) {
+      statusEl.textContent = chrome.i18n?.getMessage('statusOpenWA') || 'Please open WhatsApp Web first.';
+      return;
+    }
+    chrome.tabs.sendMessage(tab.id, { action: 'toggleSelectionMode' }, (res) => {
+      if (chrome.runtime.lastError || !res) {
+        chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          files: ['content.js']
+        }).then(() => {
+          chrome.tabs.sendMessage(tab.id, { action: 'toggleSelectionMode' }, (retryRes) => {
+            const enabledMsg = chrome.i18n?.getMessage('statusSelectionEnabled') || '✅ Selection enabled on WhatsApp!';
+            const disabledMsg = chrome.i18n?.getMessage('statusSelectionDisabled') || 'Selection disabled.';
+            statusEl.textContent = retryRes?.active ? enabledMsg : disabledMsg;
+          });
+        }).catch(() => {
+          statusEl.textContent = 'Error: Please reload WhatsApp Web.';
+        });
+        return;
+      }
+      const enabledMsg = chrome.i18n?.getMessage('statusSelectionEnabled') || '✅ Selection enabled on WhatsApp!';
+      const disabledMsg = chrome.i18n?.getMessage('statusSelectionDisabled') || 'Selection disabled.';
+      statusEl.textContent = res.active ? enabledMsg : disabledMsg;
+    });
+  });
+}
 
 // --- Media type toggles ---
 document.querySelectorAll('.filter-btn').forEach(btn => {
@@ -21,6 +91,7 @@ document.querySelectorAll('.filter-btn').forEach(btn => {
     const type = btn.dataset.type;
     selected[type] = !selected[type];
     btn.classList.toggle('inactive', !selected[type]);
+    btn.setAttribute('aria-pressed', selected[type] ? 'true' : 'false');
 
     if (type === 'docs') {
       const extWrap = document.getElementById('doc-ext-filters');
@@ -55,6 +126,66 @@ function updateDownloadLabel() {
   downloadBtn.textContent = `Download Selected (${total})`;
 }
 
+function handleScanResult(res) {
+  scanned = res;
+
+  filtersEl.style.display = 'flex';
+  const types = ['docs', 'images', 'videos', 'audio'];
+  types.forEach(type => {
+    const count = (res[type] && res[type].length) || 0;
+    const countSpan = document.getElementById(`f${type}`);
+    if (countSpan) countSpan.textContent = count;
+    const btn = document.getElementById(`filter-${type}`);
+    if (btn) {
+      if (count === 0) {
+        btn.style.display = 'none';
+        selected[type] = false;
+      } else {
+        btn.style.display = '';
+      }
+    }
+  });
+
+  if (res.docs && res.docs.length > 0) {
+    const extCount = {};
+    res.docs.forEach(d => {
+      const ext = d.filename.split('.').pop().toLowerCase();
+      extCount[ext] = (extCount[ext] || 0) + 1;
+    });
+
+    selectedDocExts = {};
+    Object.keys(extCount).forEach(ext => { selectedDocExts[ext] = false; });
+
+    let extWrap = document.getElementById('doc-ext-filters');
+    if (!extWrap) {
+      extWrap = document.createElement('div');
+      extWrap.id = 'doc-ext-filters';
+      extWrap.style.cssText = 'display:none; flex-wrap:wrap; gap:6px; margin-bottom:12px; padding-left:8px;';
+      filtersEl.insertAdjacentElement('afterend', extWrap);
+    }
+    extWrap.innerHTML = '';
+
+    Object.keys(extCount).forEach(ext => {
+      const btn = document.createElement('button');
+      btn.className = 'filter-btn inactive';
+      btn.style.fontSize = '11px';
+      btn.textContent = `.${ext.toUpperCase()} (${extCount[ext]})`;
+      btn.addEventListener('click', () => {
+        selectedDocExts[ext] = !selectedDocExts[ext];
+        btn.classList.toggle('inactive', !selectedDocExts[ext]);
+        updateDownloadLabel();
+      });
+      extWrap.appendChild(btn);
+    });
+  }
+
+  updateDownloadLabel();
+  const scopeText = currentScope === 'visible' ? 'on current screen' : 'in entire chat';
+  statusEl.textContent = `Scan completed (${scopeText}). Choose media types.`;
+  scanBtn.style.display = 'none';
+  downloadBtn.style.display = 'block';
+}
+
 // --- STEP 1: Scan ---
 scanBtn.addEventListener('click', async () => {
   scanBtn.disabled = true;
@@ -63,64 +194,40 @@ scanBtn.addEventListener('click', async () => {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   currentTab = tab;
 
-  chrome.tabs.sendMessage(tab.id, { action: 'scanMedia' }, (res) => {
+  if (!tab || (tab.url && !tab.url.includes('web.whatsapp.com'))) {
+    statusEl.textContent = 'Please open WhatsApp Web first.';
+    scanBtn.disabled = false;
+    return;
+  }
+
+  const scanPayload = {
+    action: 'scanMedia',
+    visibleOnly: currentScope === 'visible'
+  };
+
+  chrome.tabs.sendMessage(tab.id, scanPayload, async (res) => {
     if (chrome.runtime.lastError || !res) {
-      statusEl.textContent = 'Error: Reload WhatsApp Web and try again.';
-      scanBtn.disabled = false;
+      try {
+        await chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          files: ['content.js']
+        });
+        chrome.tabs.sendMessage(tab.id, scanPayload, (retryRes) => {
+          if (chrome.runtime.lastError || !retryRes) {
+            statusEl.textContent = 'Error: Reload WhatsApp Web and try again.';
+            scanBtn.disabled = false;
+            return;
+          }
+          handleScanResult(retryRes);
+        });
+      } catch (e) {
+        statusEl.textContent = 'Error: Reload WhatsApp Web and try again.';
+        scanBtn.disabled = false;
+      }
       return;
     }
 
-    scanned = res;
-
-    filtersEl.style.display = 'flex';
-    const types = ['docs', 'images', 'videos', 'audio'];
-    types.forEach(type => {
-      const count = res[type].length;
-      document.getElementById(`f${type}`).textContent = count;
-      const btn = document.getElementById(`filter-${type}`);
-      if (count === 0) {
-        btn.style.display = 'none';
-        selected[type] = false;
-      }
-    });
-
-    if (res.docs.length > 0) {
-      const extCount = {};
-      res.docs.forEach(d => {
-        const ext = d.filename.split('.').pop().toLowerCase();
-        extCount[ext] = (extCount[ext] || 0) + 1;
-      });
-
-      selectedDocExts = {};
-      Object.keys(extCount).forEach(ext => { selectedDocExts[ext] = false; });
-
-      let extWrap = document.getElementById('doc-ext-filters');
-      if (!extWrap) {
-        extWrap = document.createElement('div');
-        extWrap.id = 'doc-ext-filters';
-        extWrap.style.cssText = 'display:none; flex-wrap:wrap; gap:6px; margin-bottom:12px; padding-left:8px;';
-        filtersEl.insertAdjacentElement('afterend', extWrap);
-      }
-      extWrap.innerHTML = '';
-
-      Object.keys(extCount).forEach(ext => {
-        const btn = document.createElement('button');
-        btn.className = 'filter-btn inactive';
-        btn.style.fontSize = '11px';
-        btn.textContent = `.${ext.toUpperCase()} (${extCount[ext]})`;
-        btn.addEventListener('click', () => {
-          selectedDocExts[ext] = !selectedDocExts[ext];
-          btn.classList.toggle('inactive', !selectedDocExts[ext]);
-          updateDownloadLabel();
-        });
-        extWrap.appendChild(btn);
-      });
-    }
-
-    updateDownloadLabel();
-    statusEl.textContent = 'Select types then download.';
-    scanBtn.style.display = 'none';
-    downloadBtn.style.display = 'block';
+    handleScanResult(res);
   });
 });
 
@@ -132,6 +239,7 @@ downloadBtn.addEventListener('click', () => {
   cancelBtn.disabled = false;
   cancelBtn.textContent = '✕ Cancel';
   progressWrap.style.display = 'block';
+  progressWrap.setAttribute('aria-valuenow', '0');
   progressLabel.style.display = 'block';
   progressLabel.textContent = '';
   progressFill.style.width = '0%';
@@ -139,11 +247,13 @@ downloadBtn.addEventListener('click', () => {
   doneCount = 0;
 
   const allowedExt = getSelectedDocExts();
+  const includeTranscripts = !!(includeTranscriptsCb && includeTranscriptsCb.checked);
 
   if (selected.docs && allowedExt.length > 0) {
     chrome.tabs.sendMessage(currentTab.id, {
       action: 'clickDocs',
-      allowedExt
+      allowedExt,
+      visibleOnly: currentScope === 'visible'
     }, () => {});
   }
 
@@ -152,8 +262,21 @@ downloadBtn.addEventListener('click', () => {
     ...(selected.videos ? scanned.videos : []),
     ...(selected.audio ? scanned.audio : [])
   ];
+
   if (mediaItems.length > 0) {
-    chrome.runtime.sendMessage({ action: 'downloadMedia', media: mediaItems }, () => {});
+    const isFirefox = navigator.userAgent.includes('Firefox');
+    if (isFirefox) {
+      chrome.tabs.sendMessage(currentTab.id, {
+        action: 'downloadMediaInPage',
+        media: mediaItems,
+        includeTranscripts
+      }, () => {});
+    } else {
+      chrome.runtime.sendMessage({
+        action: 'downloadMedia',
+        media: mediaItems
+      }, () => {});
+    }
   }
 
   const total = parseInt(countEl.textContent || '0');
@@ -166,19 +289,21 @@ cancelBtn.addEventListener('click', async () => {
   cancelBtn.disabled = true;
   cancelBtn.textContent = 'Cancelling...';
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  chrome.tabs.sendMessage(tab.id, { action: 'cancelDownload' }, () => {});
+  if (tab && tab.id) {
+    chrome.tabs.sendMessage(tab.id, { action: 'cancelDownload' }, () => {});
+  }
   statusEl.textContent = 'Cancelling after current file...';
 });
 
 // --- Progress ---
-let doneCount = 0;
 chrome.runtime.onMessage.addListener((msg) => {
   if (msg.action === 'docProgress' || msg.action === 'progress') {
     doneCount++;
     doneEl.textContent = doneCount;
     const total = parseInt(countEl.textContent || '1');
-    const pct = Math.round((doneCount / total) * 100);
+    const pct = Math.min(100, Math.round((doneCount / total) * 100));
     progressFill.style.width = `${pct}%`;
+    progressWrap.setAttribute('aria-valuenow', String(pct));
     progressLabel.textContent = `${doneCount} / ${total}`;
 
     if (msg.cancelled || doneCount >= total) {
@@ -194,3 +319,4 @@ chrome.runtime.onMessage.addListener((msg) => {
     }
   }
 });
+

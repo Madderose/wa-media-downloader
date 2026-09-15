@@ -31,27 +31,42 @@
       </div>
     </div>
 
+    <!-- Scope Selector: All Chat vs Visible Viewport -->
+    <div class="scope-selector" role="group" aria-label="Selection scope">
+      <button class="scope-btn active" id="scopeAll" data-scope="all" aria-pressed="true" data-i18n="scopeAll">💬 Entire Chat</button>
+      <button class="scope-btn" id="scopeVisible" data-scope="visible" aria-pressed="false" data-i18n="scopeVisible">👁️ Current Screen</button>
+    </div>
+
     <!-- Filter toggles — hidden until scan -->
-    <div class="filters" id="filters" style="display:none;">
-      <button class="filter-btn inactive" id="filter-docs" data-type="docs">📄 Docs <span id="fdocs">0</span></button>
-      <button class="filter-btn inactive" id="filter-images" data-type="images">🖼️ Images <span id="fimages">0</span></button>
-      <button class="filter-btn inactive" id="filter-videos" data-type="videos">🎥 Video <span id="fvideos">0</span></button>
-      <button class="filter-btn inactive" id="filter-audio" data-type="audio">🎵 Audio <span id="faudio">0</span></button>
+    <div class="filters" id="filters" style="display:none;" role="group" aria-label="Media filters">
+      <button class="filter-btn inactive" id="filter-docs" data-type="docs" aria-pressed="false">📄 Docs <span id="fdocs">0</span></button>
+      <button class="filter-btn inactive" id="filter-images" data-type="images" aria-pressed="false">🖼️ Images <span id="fimages">0</span></button>
+      <button class="filter-btn inactive" id="filter-videos" data-type="videos" aria-pressed="false">🎥 Videos <span id="fvideos">0</span></button>
+      <button class="filter-btn inactive" id="filter-audio" data-type="audio" aria-pressed="false">🎵 Audio <span id="faudio">0</span></button>
+    </div>
+
+    <!-- Option: Export transcripts/captions -->
+    <div class="option-row">
+      <label class="option-label" for="includeTranscriptsCb">
+        <input type="checkbox" id="includeTranscriptsCb" checked />
+        <span data-i18n="optionTranscripts">📝 Download captions & transcripts (.txt)</span>
+      </label>
     </div>
 
     <p class="progress-label" id="progress-label" style="display:none;"></p>
-    <div class="progress-bar" id="progress-wrap">
+    <div class="progress-bar" id="progress-wrap" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Download progress">
       <div class="progress-fill" id="progress-fill"></div>
     </div>
 
-    <p class="status-text" id="status">Ready</p>
+    <p class="status-text" id="status" role="status" aria-live="polite">Ready</p>
 
-    <button class="btn" id="scanBtn">Scan</button>
-    <button class="btn btn-download" id="downloadBtn" style="display:none;">Download Selected</button>
-    <button class="btn btn-cancel" id="cancelBtn" style="display:none;">✕ Cancel</button>
+    <button class="btn" id="scanBtn" data-i18n="btnScan">Scan</button>
+    <button class="btn btn-download" id="downloadBtn" style="display:none;" data-i18n="btnDownload">Download Selected</button>
+    <button class="btn btn-cancel" id="cancelBtn" style="display:none;" data-i18n="btnCancel">✕ Cancel</button>
+    <button class="btn btn-select-mode" id="toggleSelectBtn" data-i18n="btnSelectMode">🎯 WhatsApp Selection Mode (Shift + Click)</button>
 
     <div class="footer">
-      <p>Free forever · <a href="https://ko-fi.com/renzluigi" target="_blank">Support on Ko-fi ☕</a></p>
+      <p>Free forever · <a href="https://ko-fi.com/renzluigi" target="_blank" rel="noopener noreferrer">Support on Ko-fi ☕</a></p>
       <p>If it saved you time, a small coffee means the world. 🙏</p>
     </div>
 

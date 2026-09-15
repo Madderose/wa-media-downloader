@@ -1,0 +1,36 @@
+module.exports = {
+  ignoreFiles: [
+    'extension_debug.log',
+    '*.log',
+    'scripts',
+    'scripts/**',
+    'web-ext-artifacts/**',
+    '*.md',
+    '*.code-workspace',
+    'web-ext-config.cjs',
+    'manifest firefox.json',
+    'screenshot*.png',
+    'wa_downloader_screenshot*.png',
+    '.agents/**',
+    '.playwright-mcp/**',
+    'node_modules/**',
+    'package.json',
+    'package-lock.json',
+    'tests',
+    'tests/**',
+  ],
+  build: {
+    overwriteDest: true,
+  },
+  run: {
+    watchIgnored: [
+      'extension_debug.log',
+      '*.log',
+      'scripts/**',
+      'web-ext-artifacts/**',
+      '*.md',
+      '*.code-workspace',
+      'web-ext-config.cjs',
+    ],
+  },
+};

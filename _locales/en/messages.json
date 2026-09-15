@@ -1,0 +1,74 @@
+{
+  "extensionName": {
+    "message": "WA Media Downloader",
+    "description": "The name of the extension"
+  },
+  "extensionDescription": {
+    "message": "Bulk download media from the current WhatsApp Web chat.",
+    "description": "Description of the extension"
+  },
+  "scopeAll": {
+    "message": "💬 Entire Chat",
+    "description": "Button to scan the entire conversation"
+  },
+  "scopeVisible": {
+    "message": "👁️ Current Screen",
+    "description": "Button to scan only visible viewport"
+  },
+  "optionTranscripts": {
+    "message": "📝 Download captions & transcripts (.txt)",
+    "description": "Option to export companion transcript file"
+  },
+  "btnScan": {
+    "message": "Scan",
+    "description": "Scan conversation button"
+  },
+  "btnDownload": {
+    "message": "Download Selected",
+    "description": "Download selected items button"
+  },
+  "btnCancel": {
+    "message": "✕ Cancel",
+    "description": "Cancel active download button"
+  },
+  "btnSelectMode": {
+    "message": "🎯 WhatsApp Selection Mode (Shift + Click)",
+    "description": "Toggle interactive selection button"
+  },
+  "statusReady": {
+    "message": "Ready",
+    "description": "Initial status message"
+  },
+  "statusOpenWA": {
+    "message": "Please open WhatsApp Web first.",
+    "description": "Warning when WhatsApp Web is not open"
+  },
+  "statusSelectionEnabled": {
+    "message": "✅ Selection enabled on WhatsApp!",
+    "description": "Status when in-page selection is turned on"
+  },
+  "statusSelectionDisabled": {
+    "message": "Selection disabled.",
+    "description": "Status when in-page selection is turned off"
+  },
+  "headerSelectMedia": {
+    "message": "📥 Select Media",
+    "description": "Header button injected into WhatsApp Web"
+  },
+  "barVisibleOnScreen": {
+    "message": "👁️ Visible on screen",
+    "description": "Floating bar button to select visible items"
+  },
+  "barNone": {
+    "message": "✕ None",
+    "description": "Floating bar button to clear all selections"
+  },
+  "barMedia": {
+    "message": "📥 Media",
+    "description": "Floating bar button to download selected media"
+  },
+  "barMediaTranscripts": {
+    "message": "📝 Media + Transcripts",
+    "description": "Floating bar button to download media and transcripts"
+  }
+}

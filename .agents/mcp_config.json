@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "playwright": {
+      "command": "/home/deck/.local/bin/npx",
+      "args": [
+        "-y",
+        "@playwright/mcp@latest",
+        "--browser=firefox"
+      ],
+      "env": {
+        "PATH": "/home/deck/.local/lib/nodejs/node-v20.20.2-linux-x64/bin:/home/deck/.local/bin:/usr/local/bin:/usr/bin:/bin"
+      }
+    }
+  }
+}

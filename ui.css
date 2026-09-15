@@ -330,3 +330,74 @@ h1 {
 .footer a:hover {
   color: #25d366;
 }
+
+/* Scope Selector (Tout le chat vs Page actuelle) */
+.scope-selector {
+  display: flex;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 3px;
+  margin-bottom: 12px;
+  gap: 4px;
+}
+
+.scope-btn {
+  flex: 1;
+  padding: 6px 10px;
+  border-radius: 9px;
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+}
+
+.scope-btn.active {
+  background: rgba(37, 211, 102, 0.2);
+  color: #25d366;
+  border: 1px solid rgba(37, 211, 102, 0.4);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.btn-select-mode {
+  margin-top: 8px;
+  background: linear-gradient(135deg, rgba(108, 63, 197, 0.25), rgba(37, 211, 102, 0.25));
+  border-color: rgba(108, 63, 197, 0.45);
+  color: #d1baff;
+}
+
+.btn-select-mode:hover {
+  background: linear-gradient(135deg, rgba(108, 63, 197, 0.4), rgba(37, 211, 102, 0.4));
+  border-color: rgba(108, 63, 197, 0.65);
+  color: #ffffff;
+}
+
+.option-row {
+  margin: 10px 0;
+  padding: 6px 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.option-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  user-select: none;
+}
+
+.option-label input[type="checkbox"] {
+  accent-color: #25d366;
+  width: 14px;
+  height: 14px;
+  cursor: pointer;
+}
+
