@@ -70,5 +70,25 @@
   "barMediaTranscripts": {
     "message": "📝 Media + Transcripts",
     "description": "Floating bar button to download media and transcripts"
+  },
+  "settingDownloadModeTitle": {
+    "message": "📦 Download Format",
+    "description": "Legend title for download format settings"
+  },
+  "settingDownloadModeZip": {
+    "message": "📦 Single .zip archive (Default)",
+    "description": "Radio option for single zip archive bulk download"
+  },
+  "settingDownloadModeIndividual": {
+    "message": "📄 Individually download media",
+    "description": "Radio option for individual media files download"
+  },
+  "statusZipping": {
+    "message": "Packaging files into .zip archive...",
+    "description": "Status message while generating zip file"
+  },
+  "statusZipDone": {
+    "message": "✅ Done! Single .zip archive downloaded.",
+    "description": "Status message when zip archive is downloaded"
   }
 }

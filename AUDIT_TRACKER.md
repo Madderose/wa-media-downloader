@@ -63,6 +63,7 @@ flowchart TD
 | ID Ticket | Domaine | Sévérité | Catégorie | Titre | Fichier Clé | Statut |
 | :--- | :---: | :---: | :---: | :--- | :--- | :---: |
 | [TICKET-DOM04-001](file:///.agents/tickets/TICKET-DOM04-001.md) | DOM04 | **P1** | PRIVACY/DEBUG | Conditionner l'envoi de logs vers le serveur local 9876 au mode debug | [background.js](file:///home/deck/Documents/wa-media-downloader/background.js#L10-L18) | ✅ RESOLVED |
+| [TICKET-DOM04-002](file:///.agents/tickets/TICKET-DOM04-002.md) | DOM04 | **P1** | FEATURE/UX | Téléchargement groupé en archive .zip unique par défaut et réglage téléchargement individuel | [lib/zip-packager.js](file:///home/deck/Documents/wa-media-downloader/lib/zip-packager.js) | ✅ RESOLVED |
 | [TICKET-DOM05-001](file:///.agents/tickets/TICKET-DOM05-001.md) | DOM05 | **P2** | A11Y | Ajouter `role="status"` et `role="progressbar"` dans `popup.html` | [popup.html](file:///home/deck/Documents/wa-media-downloader/popup.html#L56-L61) | ✅ RESOLVED |
 | [TICKET-DOM05-002](file:///.agents/tickets/TICKET-DOM05-002.md) | DOM05 | **P2** | A11Y/ARIA | Exposer `aria-pressed` sur les boutons de scope et de filtres | [popup.js](file:///home/deck/Documents/wa-media-downloader/popup.js#L26-L38) | ✅ RESOLVED |
 | [TICKET-DOM06-001](file:///.agents/tickets/TICKET-DOM06-001.md) | DOM06 | **P2** | A11Y | Exposer `aria-checked="mixed"` sur la master checkbox tri-state injectée | [content.js](file:///home/deck/Documents/wa-media-downloader/content.js#L1064-L1150) | ✅ RESOLVED |

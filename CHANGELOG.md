@@ -8,6 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ---
 
 ## [Uncommitted]
+### Added
+- **Licensing**: Formalized project under the **GNU General Public License v3.0 (GPLv3)** ([LICENSE](LICENSE)) with explicit Meta/WhatsApp non-affiliation and trademark disclaimer.
+- **ZipPackager**: Pure JavaScript client-side PKZIP builder (`lib/zip-packager.js`) creating standard uncompressed STORE zip archives with CRC-32 validation, 100% Zero-Data compliance and zero external dependencies (resolves `TICKET-DOM04-002`).
+- **Download Settings**: Added accessible radio group (`role="radiogroup"`) in popup settings allowing users to toggle between default bulk single `.zip` archive download and individual file downloads.
+- **Storage Persistence**: Added `"storage"` permission in `manifest.json` and persistent user preference synchronization via `chrome.storage.local`.
+- **Testing**: Expanded automated test suite (`tests/e2e/extension-smoke.spec.mjs`) with CRC-32 verification, PKZIP signature assertions, storage permission validation, and popup radio controls (45 automated assertions).
+
+### Changed
+- **Content Script**: Default bulk download behavior now automatically packages all selected media (and optional companion transcripts) into a single archive `WA_Media_YYYY-MM-DD_HHhmm.zip`, completely eliminating multiple browser download confirmation prompts.
+- **Popup UI**: Synchronized download format preference between popup settings and in-page floating control bar.
+- **Internationalization**: Added bilingual translations (EN/FR) for download format settings and zipping status messages.
 
 ## [1.4.0] - 2026-09-15
 ### Added

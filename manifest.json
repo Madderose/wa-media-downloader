@@ -8,7 +8,8 @@
     "downloads",
     "activeTab",
     "scripting",
-    "tabs"
+    "tabs",
+    "storage"
   ],
   "host_permissions": [
     "https://web.whatsapp.com/*"
@@ -23,6 +24,7 @@
         "https://web.whatsapp.com/*"
       ],
       "js": [
+        "lib/zip-packager.js",
         "content.js"
       ],
       "run_at": "document_idle"

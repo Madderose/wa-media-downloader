@@ -9,6 +9,8 @@
 ## ✨ Features
 
 - 🎯 **Interactive In-Page Selection**: An **`📥 Select Media`** button is injected directly into the WhatsApp Web conversation header. Checkboxes appear on every message bubble containing media.
+- 📦 **Single .ZIP Archive by Default**: All selected media (plus companion transcripts) are bundled into a single `.zip` file (`WA_Media_YYYY-MM-DD_HHhmm.zip`). This completely avoids multiple browser confirmation prompts when downloading tens or hundreds of files.
+- ⚙️ **Configurable Download Mode**: Prefer downloading files separately? Toggle between **Single .zip archive** and **Individually download media** in the extension popup settings at any time (persisted via `chrome.storage.local`).
 - ⚡ **Shift + Click Range Selection**: Click a message, hold `Shift`, and click another message: all media messages in between are selected instantly.
 - 🎛️ **Floating Control Bar**:
   - **Master Checkbox**: Standard tri-state checkbox (`[ ] Select all`, `[-] Partial`, `[✓] Deselect all`).
@@ -23,6 +25,7 @@
     - Audio: `WA_AUD_YYYY-MM-DD_HHhmm.ogg` (e.g. `WA_AUD_2026-09-15_15h30.ogg`)
     - Documents: `WA_DOC_YYYY-MM-DD_HHhmm_<original_name>.<ext>`
     - Transcripts: `WA_Transcripts_YYYY-MM-DD_HHhmm.txt`
+    - Bulk Archives: `WA_Media_YYYY-MM-DD_HHhmm.zip`
 - 🔢 **Collision & Overwrite Prevention**:
   - When multiple files share the exact same timestamp (e.g. photo albums or messages received in the same minute), sequential numbers are automatically appended:
     - `WA_IMG_2026-09-15_15h30_01.jpg`
@@ -101,6 +104,8 @@ Packaged files in the distribution `.zip`:
 - `background.js`
 - `content.js`
 - `popup.html` & `popup.js`
+- `lib/zip-packager.js`
+- `_locales/en/` & `_locales/fr/`
 - `ui.css`
 - `welcome.html`
 - `icon.png` & `icon128.png`
@@ -110,11 +115,22 @@ Packaged files in the distribution `.zip`:
 ## 🔒 Privacy
 
 - No user data, messages, or media are ever transmitted to any external server.
-- All downloads and processing happen locally in your browser session.
+- All downloads, zip creation, and processing happen 100% locally in your browser session.
 - Requires no account or third-party authentication.
 
 ---
 
-## ⚖️ Disclaimer
+## 📄 License
 
-This extension is an independent open-source project and is not affiliated with, sponsored by, or endorsed by WhatsApp, Meta Platforms, Inc., or Mozilla. For personal use only.
+This project is licensed under the **GNU General Public License v3.0 (GPLv3)** — see the [LICENSE](LICENSE) file for the full text.
+
+---
+
+## ⚖️ Non-Affiliation & Trademark Disclaimer
+
+**WhatsApp** is a registered trademark of **Meta Platforms, Inc.**
+
+**WA Media Downloader** is an independent open-source project. This extension and its contributors are **not** affiliated with, authorized, maintained, sponsored, or endorsed by WhatsApp LLC, Meta Platforms, Inc., or any of their subsidiaries or affiliates.
+
+This software interacts strictly with the client-side user interface of WhatsApp Web within the user's own browser session. It does not collect, store, or transmit personal data or communication contents to any remote servers. For personal and legitimate use only.
+

@@ -70,5 +70,25 @@
   "barMediaTranscripts": {
     "message": "📝 Médias + Transcripts",
     "description": "Bouton de la barre flottante pour télécharger avec transcriptions"
+  },
+  "settingDownloadModeTitle": {
+    "message": "📦 Format de téléchargement",
+    "description": "Titre des réglages du format de téléchargement"
+  },
+  "settingDownloadModeZip": {
+    "message": "📦 Archive .zip unique (Par défaut)",
+    "description": "Option pour le téléchargement groupé dans une seule archive zip"
+  },
+  "settingDownloadModeIndividual": {
+    "message": "📄 Téléchargement individuel des fichiers",
+    "description": "Option pour le téléchargement individuel fichier par fichier"
+  },
+  "statusZipping": {
+    "message": "Création de l'archive .zip en cours...",
+    "description": "Message de statut pendant la génération de l'archive zip"
+  },
+  "statusZipDone": {
+    "message": "✅ Terminé ! Archive .zip téléchargée.",
+    "description": "Message de statut après le téléchargement de l'archive zip"
   }
 }

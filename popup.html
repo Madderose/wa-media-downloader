@@ -53,6 +53,21 @@
       </label>
     </div>
 
+    <!-- Settings: Download Format (Single ZIP vs Individual Files) -->
+    <fieldset class="settings-group" role="radiogroup" aria-labelledby="downloadModeLegend">
+      <legend id="downloadModeLegend" class="settings-legend" data-i18n="settingDownloadModeTitle">📦 Download Format</legend>
+      <div class="radio-options">
+        <label class="radio-label" for="modeZip">
+          <input type="radio" id="modeZip" name="downloadMode" value="zip" checked />
+          <span data-i18n="settingDownloadModeZip">📦 Single .zip archive (Default)</span>
+        </label>
+        <label class="radio-label" for="modeIndividual">
+          <input type="radio" id="modeIndividual" name="downloadMode" value="individual" />
+          <span data-i18n="settingDownloadModeIndividual">📄 Individually download media</span>
+        </label>
+      </div>
+    </fieldset>
+
     <p class="progress-label" id="progress-label" style="display:none;"></p>
     <div class="progress-bar" id="progress-wrap" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Download progress">
       <div class="progress-fill" id="progress-fill"></div>
@@ -72,6 +87,7 @@
 
   </div>
 
+  <script src="lib/zip-packager.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>

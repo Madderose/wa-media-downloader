@@ -35,6 +35,18 @@ assert(manifest.browser_specific_settings?.gecko?.id === 'wa-media-downloader@ma
 assert(manifest.browser_specific_settings?.gecko?.data_collection_permissions?.required?.[0] === 'none', 'Data collection declared as "none"');
 assert(manifest.permissions.includes('downloads'), 'Permissions include "downloads"');
 assert(manifest.permissions.includes('activeTab'), 'Permissions include "activeTab"');
+assert(manifest.permissions.includes('storage'), 'Permissions include "storage"');
+assert(manifest.content_scripts?.[0]?.js?.includes('lib/zip-packager.js'), 'Content scripts include "lib/zip-packager.js"');
+
+const pkgPath = path.join(rootDir, 'package.json');
+const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+assert(pkg.license === 'GPL-3.0-or-later', 'package.json license is set to "GPL-3.0-or-later"');
+
+const licensePath = path.join(rootDir, 'LICENSE');
+assert(fs.existsSync(licensePath), 'LICENSE file exists in project root');
+const licenseContent = fs.readFileSync(licensePath, 'utf8');
+assert(licenseContent.includes('GNU GENERAL PUBLIC LICENSE'), 'LICENSE contains GNU General Public License text');
+assert(licenseContent.includes('WhatsApp is a registered trademark of Meta Platforms, Inc.'), 'LICENSE contains non-affiliation disclaimer');
 
 // --- TEST 2: Internationalization (i18n) Locales ---
 console.log('\n🌍 Test Suite 2: Locales & i18n Synchronization');
@@ -55,6 +67,12 @@ assert(frKeys.length > 0, `French locale contains ${frKeys.length} translation k
 
 const missingInFr = enKeys.filter(k => !frKeys.includes(k));
 assert(missingInFr.length === 0, `All English keys are present in French locale (missing: ${missingInFr.join(', ') || 'none'})`);
+assert(enKeys.includes('settingDownloadModeTitle'), 'English locale contains settingDownloadModeTitle');
+assert(frKeys.includes('settingDownloadModeTitle'), 'French locale contains settingDownloadModeTitle');
+assert(enKeys.includes('settingDownloadModeZip'), 'English locale contains settingDownloadModeZip');
+assert(frKeys.includes('settingDownloadModeZip'), 'French locale contains settingDownloadModeZip');
+assert(enKeys.includes('settingDownloadModeIndividual'), 'English locale contains settingDownloadModeIndividual');
+assert(frKeys.includes('settingDownloadModeIndividual'), 'French locale contains settingDownloadModeIndividual');
 
 // --- TEST 3: Zero-Data & Network Security Check ---
 console.log('\n🛡️ Test Suite 3: Zero-Data & Network Privacy Audit');
@@ -74,6 +92,10 @@ assert(popupHtml.includes('role="progressbar"'), 'Progress bar container has rol
 assert(popupHtml.includes('aria-valuemin="0"') && popupHtml.includes('aria-valuemax="100"'), 'Progress bar defines min and max values');
 assert(popupHtml.includes('id="scopeAll"') && popupHtml.includes('aria-pressed="true"'), 'Scope button has aria-pressed="true"');
 assert(popupHtml.includes('id="scopeVisible"') && popupHtml.includes('aria-pressed="false"'), 'Scope button has aria-pressed="false"');
+assert(popupHtml.includes('role="radiogroup"'), 'Download format settings container has role="radiogroup"');
+assert(popupHtml.includes('id="modeZip"') && popupHtml.includes('value="zip"'), 'Mode zip radio button defined');
+assert(popupHtml.includes('id="modeIndividual"') && popupHtml.includes('value="individual"'), 'Mode individual radio button defined');
+assert(popupHtml.includes('src="lib/zip-packager.js"'), 'Popup HTML loads lib/zip-packager.js');
 assert(popupHtml.includes('rel="noopener noreferrer"'), 'External links enforce rel="noopener noreferrer"');
 
 // --- TEST 5: Content Script Injected UI & Keyboard Accessibility ---
@@ -82,6 +104,35 @@ assert(contentCode.includes("masterCb.setAttribute('aria-checked', 'mixed')"), '
 assert(contentCode.includes("masterCb.indeterminate = true;"), 'content.js sets DOM indeterminate state on partial selection');
 assert(contentCode.includes("window.addEventListener('keydown', (e) => {"), 'content.js registers global keydown listener');
 assert(contentCode.includes("e.key === 'Escape'"), 'content.js handles Escape key to dismiss selection mode');
+assert(contentCode.includes("currentDownloadMode"), 'content.js tracks currentDownloadMode');
+
+// --- TEST 6: Zero-Dependency ZipPackager Binary Integrity ---
+console.log('\n📦 Test Suite 6: PKZIP Binary Packager Integrity & CRC32');
+const zipPackagerPath = path.join(rootDir, 'lib/zip-packager.js');
+assert(fs.existsSync(zipPackagerPath), 'lib/zip-packager.js exists');
+
+await import(zipPackagerPath);
+const packager = globalThis.ZipPackager;
+assert(typeof packager === 'object' && packager !== null, 'ZipPackager is defined on globalThis');
+assert(typeof packager.createZipBuffer === 'function', 'createZipBuffer is exposed as a function');
+assert(typeof packager.crc32 === 'function', 'crc32 is exposed as a function');
+
+// Test CRC32 against known test vector: "123456789" => 0xCBF43926 (3421760294)
+const knownVec = new TextEncoder().encode('123456789');
+const computedCrc = packager.crc32(knownVec);
+assert(computedCrc === 0xCBF43926, `CRC32 vector check matches standard (expected 0xCBF43926, got 0x${computedCrc.toString(16).toUpperCase()})`);
+
+// Generate in-memory ZIP
+const testFiles = [
+  { name: 'document.txt', data: 'Test text content' },
+  { name: 'nested/image.bin', data: new Uint8Array([0xFF, 0xD8, 0xFF, 0xE0]) }
+];
+const zipBinary = await packager.createZipBuffer(testFiles);
+assert(zipBinary instanceof Uint8Array && zipBinary.length > 50, `Zip buffer generated with size ${zipBinary.length} bytes`);
+
+// Validate PKZIP magic numbers (0x04034b50 -> 'PK\x03\x04')
+const isPkZip = zipBinary[0] === 0x50 && zipBinary[1] === 0x4B && zipBinary[2] === 0x03 && zipBinary[3] === 0x04;
+assert(isPkZip, 'Binary starts with valid PKZIP signature (0x50 0x4B 0x03 0x04)');
 
 // --- SUMMARY ---
 console.log(`\n========================================`);

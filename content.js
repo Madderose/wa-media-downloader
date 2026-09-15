@@ -23,8 +23,25 @@ let cancelDownload = false;
 let selectionModeActive = false;
 let lastCheckedIndex = -1;
 let observerAttached = false;
+let currentDownloadMode = 'zip'; // Default: bulk zip archive
 const selectedMessageIds = new Set();
 const selectedMediaCache = new Map(); // msgId -> mediaItem
+
+// Listen to downloadMode setting from chrome.storage
+if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+  chrome.storage.local.get({ downloadMode: 'zip' }, (res) => {
+    if (res && res.downloadMode) {
+      currentDownloadMode = res.downloadMode;
+    }
+  });
+  if (chrome.storage.onChanged) {
+    chrome.storage.onChanged.addListener((changes, areaName) => {
+      if (areaName === 'local' && changes.downloadMode) {
+        currentDownloadMode = changes.downloadMode.newValue || 'zip';
+      }
+    });
+  }
+}
 
 // Unified Logger: writes to console and optionally forwards to background logger
 function remoteLog(...args) {
@@ -1299,36 +1316,105 @@ async function downloadSelectedInPage(includeTranscripts = false) {
     }
   }
 
-  // 1. Download media directly
-  if (itemsToDownload.length > 0) {
-    for (const item of itemsToDownload) {
-      try {
-        let downloadUrl = item.url;
-        let revoke = false;
-        if (!item.url.startsWith('blob:')) {
-          try {
-            const res = await fetch(item.url);
-            const blob = await res.blob();
-            downloadUrl = URL.createObjectURL(blob);
-            revoke = true;
-          } catch (e) {
-            downloadUrl = item.url;
-          }
-        }
-        const a = document.createElement('a');
-        a.href = downloadUrl;
-        a.download = item.filename;
-        a.style.display = 'none';
-        document.body.appendChild(a);
-        a.click();
-        setTimeout(() => {
-          a.remove();
-          if (revoke) URL.revokeObjectURL(downloadUrl);
-        }, 1500);
-      } catch (e) {
-        console.error('Download error for', item.filename, e);
+  const packager = (typeof ZipPackager !== 'undefined' ? ZipPackager : (typeof window !== 'undefined' ? window.ZipPackager : null));
+  const badge = document.getElementById('wa-dl-count-badge');
+
+  if (currentDownloadMode === 'zip' && packager && (itemsToDownload.length > 0 || (includeTranscripts && transcriptLines.length > 0))) {
+    const zipFiles = [];
+    const totalToFetch = itemsToDownload.length;
+    let completedFetch = 0;
+
+    for (let i = 0; i < totalToFetch; i++) {
+      if (cancelDownload) break;
+      const it = itemsToDownload[i];
+      if (badge) {
+        badge.textContent = `📦 Zipping ${i + 1}/${totalToFetch}...`;
       }
-      await new Promise(r => setTimeout(r, 350));
+      try {
+        const res = await fetch(it.url);
+        const blob = await res.blob();
+        zipFiles.push({
+          name: it.filename,
+          data: blob
+        });
+      } catch (e) {
+        console.warn('Zip media fetch error for', it.filename, e);
+      }
+      completedFetch++;
+    }
+
+    if (includeTranscripts && transcriptLines.length > 0) {
+      const exportTime = formatHumanTimestamp(new Date());
+      zipFiles.push({
+        name: `WA_Transcripts_${exportTime}.txt`,
+        data: transcriptLines.join('\n')
+      });
+    }
+
+    if (zipFiles.length > 0) {
+      if (badge) badge.textContent = '📦 Finalizing .zip...';
+      const zipBlob = await packager.createZipBlob(zipFiles);
+      const exportTime = formatHumanTimestamp(new Date());
+      const zipFilename = `WA_Media_${exportTime}.zip`;
+      const downloadUrl = URL.createObjectURL(zipBlob);
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      a.download = zipFilename;
+      a.style.display = 'none';
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        a.remove();
+        URL.revokeObjectURL(downloadUrl);
+      }, 3500);
+
+      if (badge) {
+        badge.textContent = '✅ .zip downloaded!';
+        badge.style.background = '#25d366';
+        setTimeout(() => {
+          badge.textContent = `${selectedMediaCache.size} selected`;
+          badge.style.background = '';
+        }, 3000);
+      }
+    }
+  } else {
+    // 1. Download media directly (individual mode)
+    if (itemsToDownload.length > 0) {
+      for (const item of itemsToDownload) {
+        try {
+          let downloadUrl = item.url;
+          let revoke = false;
+          if (!item.url.startsWith('blob:')) {
+            try {
+              const res = await fetch(item.url);
+              const blob = await res.blob();
+              downloadUrl = URL.createObjectURL(blob);
+              revoke = true;
+            } catch (e) {
+              downloadUrl = item.url;
+            }
+          }
+          const a = document.createElement('a');
+          a.href = downloadUrl;
+          a.download = item.filename;
+          a.style.display = 'none';
+          document.body.appendChild(a);
+          a.click();
+          setTimeout(() => {
+            a.remove();
+            if (revoke) URL.revokeObjectURL(downloadUrl);
+          }, 1500);
+        } catch (e) {
+          console.error('Download error for', item.filename, e);
+        }
+        await new Promise(r => setTimeout(r, 350));
+      }
+    }
+
+    // 3. Download transcripts text file if requested (individual mode)
+    if (includeTranscripts) {
+      const exportTime = formatHumanTimestamp(new Date());
+      downloadTextFile(transcriptLines.join('\n'), `WA_Transcripts_${exportTime}.txt`);
     }
   }
 
@@ -1375,12 +1461,6 @@ async function downloadSelectedInPage(includeTranscripts = false) {
       }
       await wait(1200);
     }
-  }
-
-  // 3. Download transcripts text file if requested
-  if (includeTranscripts) {
-    const exportTime = formatHumanTimestamp(new Date());
-    downloadTextFile(transcriptLines.join('\n'), `WA_Transcripts_${exportTime}.txt`);
   }
 }
 
@@ -1481,6 +1561,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   // --- DOWNLOAD MEDIA DIRECTLY (in-page context) ---
   if (msg.action === 'downloadMediaInPage') {
     const items = msg.media || [];
+    const mode = msg.downloadMode || currentDownloadMode || 'zip';
     let completed = 0;
     cancelDownload = false;
     sendResponse({ started: true, total: items.length });
@@ -1489,7 +1570,10 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     assignBatchFilenames(items);
 
     (async () => {
-      // If includeTranscripts was requested, build summary text
+      const packager = (typeof ZipPackager !== 'undefined' ? ZipPackager : (typeof window !== 'undefined' ? window.ZipPackager : null));
+
+      // Build transcript lines if includeTranscripts is requested
+      let transcriptText = '';
       if (msg.includeTranscripts && items.length > 0) {
         const transcriptLines = [
           '====================================================================',
@@ -1506,62 +1590,139 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           if (it.text) transcriptLines.push(`  💬 Caption / Text: "${it.text}"`);
           transcriptLines.push('--------------------------------------------------------------------');
         });
-        const exportTime = formatHumanTimestamp(new Date());
-        downloadTextFile(transcriptLines.join('\n'), `WA_Transcripts_${exportTime}.txt`);
+        transcriptText = transcriptLines.join('\n');
       }
 
-      for (const item of items) {
-        if (cancelDownload) {
+      if (mode === 'zip' && packager && items.length > 0) {
+        const zipFiles = [];
+        for (let i = 0; i < items.length; i++) {
+          if (cancelDownload) {
+            try {
+              chrome.runtime.sendMessage({
+                action: 'progress',
+                completed,
+                total: items.length,
+                cancelled: true
+              });
+            } catch (e) {}
+            break;
+          }
+
+          const item = items[i];
+          try {
+            const res = await fetch(item.url);
+            const blob = await res.blob();
+            zipFiles.push({
+              name: item.assignedFilename || item.filename,
+              data: blob
+            });
+          } catch (e) {
+            console.warn('Download fetch error for item:', item.filename, e);
+          }
+
+          completed++;
           try {
             chrome.runtime.sendMessage({
               action: 'progress',
               completed,
-              total: items.length,
-              cancelled: true
+              total: items.length
             });
           } catch (e) {}
-          break;
         }
 
-        try {
-          let downloadUrl = item.url;
-          let revoke = false;
+        if (msg.includeTranscripts && transcriptText) {
+          const exportTime = formatHumanTimestamp(new Date());
+          zipFiles.push({
+            name: `WA_Transcripts_${exportTime}.txt`,
+            data: transcriptText
+          });
+        }
 
-          if (!item.url.startsWith('blob:')) {
-            try {
-              const res = await fetch(item.url);
-              const blob = await res.blob();
-              downloadUrl = URL.createObjectURL(blob);
-              revoke = true;
-            } catch (fetchErr) {
-              downloadUrl = item.url;
-            }
-          }
-
+        if (zipFiles.length > 0) {
+          const zipBlob = await packager.createZipBlob(zipFiles);
+          const exportTime = formatHumanTimestamp(new Date());
+          const zipFilename = `WA_Media_${exportTime}.zip`;
+          const downloadUrl = URL.createObjectURL(zipBlob);
           const a = document.createElement('a');
           a.href = downloadUrl;
-          a.download = item.assignedFilename || item.filename;
+          a.download = zipFilename;
           a.style.display = 'none';
           document.body.appendChild(a);
           a.click();
           setTimeout(() => {
             a.remove();
-            if (revoke) URL.revokeObjectURL(downloadUrl);
-          }, 1500);
-        } catch (e) {
-          console.error('Download error for item:', item.filename, e);
+            URL.revokeObjectURL(downloadUrl);
+          }, 3500);
+
+          try {
+            chrome.runtime.sendMessage({
+              action: 'progress',
+              completed: items.length,
+              total: items.length,
+              zipCompleted: true
+            });
+          } catch (e) {}
+        }
+      } else {
+        // Individual file downloads
+        if (msg.includeTranscripts && transcriptText) {
+          const exportTime = formatHumanTimestamp(new Date());
+          downloadTextFile(transcriptText, `WA_Transcripts_${exportTime}.txt`);
         }
 
-        completed++;
-        try {
-          chrome.runtime.sendMessage({
-            action: 'progress',
-            completed,
-            total: items.length
-          });
-        } catch (e) {}
+        for (const item of items) {
+          if (cancelDownload) {
+            try {
+              chrome.runtime.sendMessage({
+                action: 'progress',
+                completed,
+                total: items.length,
+                cancelled: true
+              });
+            } catch (e) {}
+            break;
+          }
 
-        await new Promise(r => setTimeout(r, 400));
+          try {
+            let downloadUrl = item.url;
+            let revoke = false;
+
+            if (!item.url.startsWith('blob:')) {
+              try {
+                const res = await fetch(item.url);
+                const blob = await res.blob();
+                downloadUrl = URL.createObjectURL(blob);
+                revoke = true;
+              } catch (fetchErr) {
+                downloadUrl = item.url;
+              }
+            }
+
+            const a = document.createElement('a');
+            a.href = downloadUrl;
+            a.download = item.assignedFilename || item.filename;
+            a.style.display = 'none';
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(() => {
+              a.remove();
+              if (revoke) URL.revokeObjectURL(downloadUrl);
+            }, 1500);
+          } catch (e) {
+            console.error('Download error for item:', item.filename, e);
+          }
+
+          completed++;
+          try {
+            chrome.runtime.sendMessage({
+              action: 'progress',
+              completed,
+              total: items.length
+            });
+          } catch (e) {}
+
+          await new Promise(r => setTimeout(r, 400));
+        }
       }
     })();
     return false;

@@ -21,6 +21,44 @@ const scopeAllBtn = document.getElementById('scopeAll');
 const scopeVisibleBtn = document.getElementById('scopeVisible');
 const toggleSelectBtn = document.getElementById('toggleSelectBtn');
 const includeTranscriptsCb = document.getElementById('includeTranscriptsCb');
+const modeZipRadio = document.getElementById('modeZip');
+const modeIndividualRadio = document.getElementById('modeIndividual');
+
+let currentDownloadMode = 'zip'; // 'zip' (default) or 'individual'
+
+// --- Storage & Download Mode Initialization ---
+if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+  chrome.storage.local.get({ downloadMode: 'zip' }, (res) => {
+    currentDownloadMode = (res && res.downloadMode) || 'zip';
+    if (currentDownloadMode === 'individual') {
+      if (modeIndividualRadio) modeIndividualRadio.checked = true;
+    } else {
+      if (modeZipRadio) modeZipRadio.checked = true;
+    }
+  });
+}
+
+if (modeZipRadio) {
+  modeZipRadio.addEventListener('change', () => {
+    if (modeZipRadio.checked) {
+      currentDownloadMode = 'zip';
+      if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+        chrome.storage.local.set({ downloadMode: 'zip' });
+      }
+    }
+  });
+}
+
+if (modeIndividualRadio) {
+  modeIndividualRadio.addEventListener('change', () => {
+    if (modeIndividualRadio.checked) {
+      currentDownloadMode = 'individual';
+      if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+        chrome.storage.local.set({ downloadMode: 'individual' });
+      }
+    }
+  });
+}
 
 // --- Internationalization (i18n) Helper ---
 function applyI18n() {
@@ -264,23 +302,20 @@ downloadBtn.addEventListener('click', () => {
   ];
 
   if (mediaItems.length > 0) {
-    const isFirefox = navigator.userAgent.includes('Firefox');
-    if (isFirefox) {
-      chrome.tabs.sendMessage(currentTab.id, {
-        action: 'downloadMediaInPage',
-        media: mediaItems,
-        includeTranscripts
-      }, () => {});
-    } else {
-      chrome.runtime.sendMessage({
-        action: 'downloadMedia',
-        media: mediaItems
-      }, () => {});
-    }
+    chrome.tabs.sendMessage(currentTab.id, {
+      action: 'downloadMediaInPage',
+      media: mediaItems,
+      includeTranscripts,
+      downloadMode: currentDownloadMode
+    }, () => {});
   }
 
   const total = parseInt(countEl.textContent || '0');
-  statusEl.textContent = `Downloading ${total} file(s)...`;
+  if (currentDownloadMode === 'zip') {
+    statusEl.textContent = chrome.i18n?.getMessage('statusZipping') || `Packaging ${total} file(s) into .zip...`;
+  } else {
+    statusEl.textContent = `Downloading ${total} file(s)...`;
+  }
 });
 
 // --- Cancel ---
@@ -292,26 +327,28 @@ cancelBtn.addEventListener('click', async () => {
   if (tab && tab.id) {
     chrome.tabs.sendMessage(tab.id, { action: 'cancelDownload' }, () => {});
   }
-  statusEl.textContent = 'Cancelling after current file...';
+  statusEl.textContent = 'Cancelling...';
 });
 
 // --- Progress ---
 chrome.runtime.onMessage.addListener((msg) => {
   if (msg.action === 'docProgress' || msg.action === 'progress') {
-    doneCount++;
+    doneCount = (msg.completed !== undefined) ? msg.completed : doneCount + 1;
     doneEl.textContent = doneCount;
-    const total = parseInt(countEl.textContent || '1');
+    const total = msg.total || parseInt(countEl.textContent || '1');
     const pct = Math.min(100, Math.round((doneCount / total) * 100));
     progressFill.style.width = `${pct}%`;
     progressWrap.setAttribute('aria-valuenow', String(pct));
     progressLabel.textContent = `${doneCount} / ${total}`;
 
-    if (msg.cancelled || doneCount >= total) {
+    if (msg.cancelled || doneCount >= total || msg.zipCompleted) {
       cancelBtn.style.display = 'none';
       cancelBtn.disabled = false;
       cancelBtn.textContent = '✕ Cancel';
       if (msg.cancelled) {
         statusEl.textContent = `Stopped at ${doneCount} / ${total} file(s).`;
+      } else if (msg.zipCompleted || currentDownloadMode === 'zip') {
+        statusEl.textContent = chrome.i18n?.getMessage('statusZipDone') || '✅ Done! Single .zip archive downloaded.';
       } else {
         statusEl.textContent = `✅ Done! ${doneCount} file(s) downloaded.`;
       }
