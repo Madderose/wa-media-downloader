@@ -161,8 +161,11 @@ async function runSuite() {
     console.log('\n🔄 Scenario 7: Live Extension Popup State Synchronization');
     // Reactivate selection and select 2 items
     await badge.click();
-    await checkboxes.nth(0).click();
-    await checkboxes.nth(1).click();
+    await bar.waitFor({ state: 'visible', timeout: 5000 });
+    await page.waitForSelector('.wa-dl-msg-cb', { state: 'visible', timeout: 5000 });
+    const activeCbs = page.locator('.wa-dl-msg-cb');
+    await activeCbs.nth(0).click();
+    await activeCbs.nth(1).click();
 
     // Get the extension ID directly from page dataset or background worker
     let extensionId = await page.evaluate(() => {
@@ -226,6 +229,69 @@ async function runSuite() {
     const badgeTextAfter = await countBadge.textContent();
     assert(checkedCountAfter === 0, 'Previous chat checkboxes cleanly cleared upon switching conversations');
     assert(badgeTextAfter.includes('0 /'), `Action bar count reset upon conversation switch (got: "${badgeTextAfter}")`);
+
+    console.log('\n📦 Scenario 9: Unified ZIP Generation (Photos + PDFs bundled together)');
+    // Switch back to "Project Discussion Group"
+    await page.evaluate(() => {
+      const header = document.querySelector('header');
+      if (header) {
+        const titleEl = header.querySelector('.chat-title');
+        if (titleEl) titleEl.textContent = 'Project Discussion Group';
+      }
+    });
+    await page.waitForTimeout(600);
+
+    // Reactivate and select Image (idx 0) and Document PDF (idx 3)
+    const currentCbs = page.locator('.wa-dl-msg-cb');
+    await currentCbs.nth(0).click();
+    await currentCbs.nth(3).click();
+    const selCount = await countBadge.textContent();
+    assert(selCount.includes('2 selected'), `Selected 1 photo and 1 PDF document (got: "${selCount}")`);
+
+    // Install download listener in page to intercept generated ZIP blob
+    await page.evaluate(() => {
+      window.__downloadedZips = [];
+      document.addEventListener('click', (e) => {
+        const a = e.target ? (e.target.closest ? e.target.closest('a') : null) : null;
+        if (a && a.download && a.download.endsWith('.zip') && a.href) {
+          window.__downloadedZips.push({
+            filename: a.download,
+            href: a.href
+          });
+        }
+      }, true);
+    });
+
+    // Click the in-page main download button in the floating bar
+    const dlMainBtn = page.locator('#wa-dl-btn-download-main');
+    await dlMainBtn.click();
+
+    // Wait for the unified ZIP archive to be created and clicked
+    await page.waitForFunction(() => window.__downloadedZips && window.__downloadedZips.length > 0, { timeout: 12000 });
+    const zipDownload = await page.evaluate(() => window.__downloadedZips[0]);
+
+    assert(zipDownload !== null, `Unified ZIP archive generated (name: "${zipDownload?.filename}")`);
+
+    // Inspect the ZIP binary content
+    const zipInspection = await page.evaluate(async (href) => {
+      const fetchRes = await fetch(href);
+      const blob = await fetchRes.blob();
+      const arrayBuf = await blob.arrayBuffer();
+      const uint8 = new Uint8Array(arrayBuf);
+      const textDec = new TextDecoder();
+      const zipStr = textDec.decode(uint8);
+
+      return {
+        hasImage: zipStr.includes('.jpg') || zipStr.includes('WA_IMG_'),
+        hasPdf: zipStr.includes('Specifications_v1.pdf'),
+        hasTranscript: zipStr.includes('Transcripts'),
+        size: uint8.length
+      };
+    }, zipDownload.href);
+
+    assert(zipInspection.hasImage === true, 'Unified ZIP contains photo media file');
+    assert(zipInspection.hasPdf === true, 'Unified ZIP contains PDF document file (Specifications_v1.pdf)');
+    assert(zipInspection.hasTranscript === true, 'Unified ZIP contains companion transcript (.txt)');
 
   } finally {
     await context.close();

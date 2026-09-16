@@ -11,7 +11,7 @@
 ## ✨ Features
 
 - 🎯 **Interactive In-Page Selection**: An **`📥 Select Media`** button is injected directly into the WhatsApp Web conversation header. Checkboxes appear on every message bubble containing media.
-- 📦 **Single .ZIP Archive by Default**: All selected media (plus companion transcripts) are bundled into a single `.zip` file (`WA_Media_YYYY-MM-DD_HHhmm.zip`). This completely avoids multiple browser confirmation prompts when downloading tens or hundreds of files.
+- 📦 **Unified .ZIP Archive by Default**: All selected media — photos, videos, audio, **documents/PDFs**, and companion transcripts — are bundled together into a single unified `.zip` file (`WA_[ChatTitle]_YYYY-MM-DD_HHhmm.zip`). Programmatic in-page decryption captures document and PDF blobs seamlessly alongside media, avoiding multiple browser confirmation prompts and file clutter.
 - ⚙️ **Configurable Download Mode**: Prefer downloading files separately? Toggle between **Single .zip archive** and **Individually download media** in the extension popup settings at any time (persisted via `chrome.storage.local`).
 - ⚡ **Shift + Click Range Selection**: Click a message, hold `Shift`, and click another message: all media messages in between are selected instantly.
 - 🎛️ **Floating Control Bar**:
@@ -48,28 +48,27 @@
 
 ## 🚀 Installation
 
-### Firefox
+### 🦊 Firefox (Permanent Install via Signed .xpi)
 
-#### From Add-on Package (.zip / .xpi)
-1. Download `wa_media_downloader-1.4.zip` from [`web-ext-artifacts/`](web-ext-artifacts/).
-2. Open Firefox and go to `about:debugging#/runtime/this-firefox`.
-3. Click **Load Temporary Add-on...**
-4. Select the `.zip` archive (or `manifest.json`).
+1. Download the signed package **`wa_media_downloader-1.6.0.xpi`** from the [GitHub Releases](https://github.com/Madderose/wa-media-downloader/releases).
+2. Open Firefox and navigate to `about:addons` (or press `Ctrl + Shift + A`).
+3. Click the gear icon (⚙️) in the top-right corner and select **"Install Add-on From File..."** (or simply drag & drop the `.xpi` file directly into the Firefox window).
+4. Click **"Add"** when prompted to complete the permanent installation.
 
-#### Developer Hub (AMO)
-The extension is pre-configured for Mozilla Add-on Developer Hub submission with:
-- Dedicated Gecko ID: `wa-media-downloader@madderose`
-- `data_collection_permissions: { required: ["none"] }`
-- **0 errors, 0 warnings** on `web-ext lint`.
+> *Alternatively, for local temporary development: go to `about:debugging#/runtime/this-firefox` and click **Load Temporary Add-on...**, then select `manifest.json`.*
 
 ---
 
-### Chrome / Chromium / Edge
+### 🔵 Chrome / Brave / Edge / Chromium
 
-1. Clone or download this repository.
-2. Open Chrome/Edge and go to `chrome://extensions/`.
-3. Enable **Developer mode** (top-right toggle).
-4. Click **Load unpacked** and select the extension folder.
+1. Download **`wa_media_downloader-1.6.zip`** from the [GitHub Releases](https://github.com/Madderose/wa-media-downloader/releases) (or clone this repository).
+2. Unpack/extract the `.zip` archive into a folder on your computer.
+3. Open your browser's extension page:
+   - Chrome: `chrome://extensions`
+   - Brave: `brave://extensions`
+   - Edge: `edge://extensions`
+4. Enable **Developer mode** toggle in the top-right corner.
+5. Click **Load unpacked** (or "Charger l'extension non empaquetée") and select the extracted folder.
 
 ---
 

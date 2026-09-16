@@ -194,6 +194,21 @@ const sm = globalThis.SelectionManager;
 assert(typeof sm?.getChatTitle === 'function', 'SelectionManager exposes getChatTitle');
 assert(typeof sm?.setChatContext === 'function', 'SelectionManager exposes setChatContext');
 
+// --- TEST 8: In-Page Document Interceptor & Unified ZIP Archiving ---
+console.log('\n📦 Test Suite 8: In-Page Document Interceptor & Unified ZIP Archiving');
+const interceptorPath = path.join(rootDir, 'lib/page-interceptor.js');
+assert(fs.existsSync(interceptorPath), 'lib/page-interceptor.js exists');
+
+const mainScript = manifest.content_scripts?.find(cs => cs.world === 'MAIN');
+assert(mainScript !== undefined, 'manifest.json declares a content script with world: "MAIN"');
+assert(mainScript?.js?.includes('lib/page-interceptor.js'), 'MAIN world content script includes lib/page-interceptor.js');
+assert(mainScript?.run_at === 'document_start', 'MAIN world content script runs at document_start');
+
+await import(path.join(rootDir, 'lib/download-pipeline.js'));
+const dp = globalThis.DownloadPipeline;
+assert(typeof dp?.captureDocumentBlobs === 'function', 'DownloadPipeline exposes captureDocumentBlobs');
+assert(typeof dp?.downloadBatch === 'function', 'DownloadPipeline exposes downloadBatch');
+
 // --- SUMMARY ---
 console.log(`\n========================================`);
 console.log(`Test Results: ${passed} Passed, ${failed} Failed`);

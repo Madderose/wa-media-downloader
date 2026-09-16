@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Uncommitted]
 
+## [1.7.0] - 2026-09-16
+### Added
+- **Unified
+ZIP Archiving (Images + Documents/PDFs)**:
+  - Added `lib/page-interceptor.js` registered in `manifest.json` under `world: "MAIN"` at `document_start` to intercept programmatic document preview download clicks and extract decrypted blob URLs alongside document filenames via a secure DOM dataset bridge (`#wa-dl-interceptor-bridge`).
+  - Added `captureDocumentBlobs` in `lib/download-pipeline.js` to trigger WhatsApp Web's in-app document preview decryption while intercepting the resulting blob without triggering uncoordinated browser downloads.
+  - Updated `downloadBatch` in `lib/download-pipeline.js` so that in ZIP download mode, all intercepted document and PDF blobs are seamlessly packaged into the same unified `.zip` archive alongside photos, videos, and companion transcripts.
+  - Enhanced document filename detection in `lib/media-detector.js` to inspect inner text elements, spans, and file extension patterns when container `title` attributes are omitted.
+  - Added Test Suite 8 in `tests/e2e/extension-smoke.spec.mjs` and Scenario 9 in `tests/e2e/whatsapp-interaction.spec.mjs` verifying mixed-media single-ZIP generation.
+
+### Changed
+- **Documentation**: Updated `README.md` installation section to document dual-package distribution: permanent 1-click install via Mozilla-signed `wa_media_downloader-1.6.0.xpi` for Firefox and unpacked folder installation via `wa_media_downloader-1.6.zip` for Chromium browsers.
+- **Documentation**: Updated `README.md` features to highlight unified `.zip` bundling for mixed media (photos, videos, audio, and documents/PDFs).
+
 ## [1.6.0] - 2026-09-16
 ### Added
 - **Chat Context & Isolation**: Implemented `getChatTitle` in `lib/media-detector.js` and active conversation tracking (`setChatContext`, `getChatTitle`) in `lib/selection-manager.js`, isolating selections per conversation on WhatsApp Web.

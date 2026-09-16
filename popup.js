@@ -351,9 +351,22 @@ scanBtn.addEventListener('click', async () => {
   chrome.tabs.sendMessage(tab.id, scanPayload, async (res) => {
     if (chrome.runtime.lastError || !res) {
       try {
+        chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          world: 'MAIN',
+          files: ['lib/page-interceptor.js']
+        }).catch(() => {});
         await chrome.scripting.executeScript({
           target: { tabId: tab.id },
-          files: ['content.js']
+          files: [
+            'lib/zip-packager.js',
+            'lib/naming-service.js',
+            'lib/media-detector.js',
+            'lib/selection-manager.js',
+            'lib/download-pipeline.js',
+            'lib/ui-controller.js',
+            'content.js'
+          ]
         });
         chrome.tabs.sendMessage(tab.id, scanPayload, (retryRes) => {
           if (chrome.runtime.lastError || !retryRes) {

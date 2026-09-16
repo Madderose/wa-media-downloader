@@ -1,6 +1,6 @@
 {
   "name": "wa-media-downloader",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "description": "Bulk download media from the current WhatsApp Web chat.",
   "license": "GPL-3.0-or-later",
   "author": "Madderose <hopp.jonas@gmail.com>",

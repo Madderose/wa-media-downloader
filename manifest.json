@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "WA Media Downloader",
-  "version": "1.6",
+  "version": "1.7",
   "default_locale": "en",
   "description": "Bulk download media from the current WhatsApp Web chat.",
   "permissions": [
@@ -44,6 +44,16 @@
         "injected.css"
       ],
       "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://web.whatsapp.com/*"
+      ],
+      "js": [
+        "lib/page-interceptor.js"
+      ],
+      "world": "MAIN",
+      "run_at": "document_start"
     }
   ],
   "background": {
