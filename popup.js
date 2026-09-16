@@ -117,7 +117,8 @@ function updateLiveSelectionUI(state) {
     liveSelectionCard.style.display = 'block';
     if (liveSelectionCount) {
       const countMsg = chrome.i18n?.getMessage('popupLiveSelectionCount', [String(state.selectedCount)]);
-      liveSelectionCount.textContent = countMsg || `${state.selectedCount} selected`;
+      const chatSuffix = state.chatTitle ? ` (${state.chatTitle})` : '';
+      liveSelectionCount.textContent = (countMsg || `${state.selectedCount} selected`) + chatSuffix;
     }
   } else {
     liveSelectionCard.style.display = 'none';
@@ -200,7 +201,15 @@ if (toggleSelectBtn) {
       if (chrome.runtime.lastError || !res) {
         chrome.scripting.executeScript({
           target: { tabId: tab.id },
-          files: ['content.js']
+          files: [
+            'lib/zip-packager.js',
+            'lib/naming-service.js',
+            'lib/media-detector.js',
+            'lib/selection-manager.js',
+            'lib/download-pipeline.js',
+            'lib/ui-controller.js',
+            'content.js'
+          ]
         }).then(() => {
           chrome.tabs.sendMessage(tab.id, { action: 'toggleSelectionMode' }, (retryRes) => {
             const enabledMsg = chrome.i18n?.getMessage('statusSelectionEnabled') || '✅ Selection enabled on WhatsApp!';

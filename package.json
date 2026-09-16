@@ -1,13 +1,13 @@
 {
   "name": "wa-media-downloader",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "description": "Bulk download media from the current WhatsApp Web chat.",
   "license": "GPL-3.0-or-later",
   "author": "Madderose <hopp.jonas@gmail.com>",
   "private": true,
   "type": "module",
   "scripts": {
-    "validate": "npx -y web-ext lint && node --check background.js content.js popup.js lib/*.js scripts/*.mjs",
+    "validate": "npx -y web-ext lint && node --check background.js content.js popup.js welcome.js lib/*.js scripts/*.mjs",
     "lint": "npx -y web-ext lint",
     "build": "npx -y web-ext build --overwrite-dest",
     "version:bump": "node scripts/bump-version.mjs",

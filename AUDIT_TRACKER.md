@@ -70,6 +70,12 @@ flowchart TD
 | [TICKET-DOM07-001](file:///.agents/tickets/TICKET-DOM07-001.md) | DOM07 | **P1** | COMPLIANCE | Retirer ou isoler sous flag dev l'appel `fetch('http://127.0.0.1:9876/log')` pour validation AMO | [content.js](file:///home/deck/Documents/wa-media-downloader/content.js#L15-L20) | ✅ RESOLVED |
 | [TICKET-DOM08-001](file:///.agents/tickets/TICKET-DOM08-001.md) | DOM08 | **P1** | E2E_GAP | Implémenter la suite de tests Playwright automatisée via le profil Firefox configuré | [.agents/mcp_config.json](file:///.agents/mcp_config.json) | ✅ RESOLVED |
 | [TICKET-DOM08-002](file:///.agents/tickets/TICKET-DOM08-002.md) | DOM08 | **P2** | I18N | Préparer la structure WebExtension i18n (`_locales/en` et `_locales/fr`) | [popup.html](file:///home/deck/Documents/wa-media-downloader/popup.html) | ✅ RESOLVED |
+| [TICKET-DOM01-002](file:///lib/media-detector.js) | DOM01 | **P1** | SPA/STATE | Isolation stricte de sélection inter-chats lors des transitions SPA | [lib/media-detector.js](file:///home/deck/Documents/wa-media-downloader/lib/media-detector.js), [lib/selection-manager.js](file:///home/deck/Documents/wa-media-downloader/lib/selection-manager.js) | ✅ RESOLVED |
+| [TICKET-DOM02-002](file:///lib/download-pipeline.js) | DOM02 | **P1** | CONCURRENCY | Immunité de la fermeture Escape contre les événements synthétiques non fiables | [content.js](file:///home/deck/Documents/wa-media-downloader/content.js), [lib/download-pipeline.js](file:///home/deck/Documents/wa-media-downloader/lib/download-pipeline.js) | ✅ RESOLVED |
+| [TICKET-DOM03-002](file:///lib/naming-service.js) | DOM03 | **P2** | I18N/UNICODE | Préservation des caractères Unicode et accents dans les noms de documents | [lib/naming-service.js](file:///home/deck/Documents/wa-media-downloader/lib/naming-service.js) | ✅ RESOLVED |
+| [TICKET-DOM04-003](file:///lib/download-pipeline.js) | DOM04 | **P2** | RESILIENCY | Contrôle `res.ok` et reprise sur incident lors du fetch de médias dans le packager ZIP | [lib/download-pipeline.js](file:///home/deck/Documents/wa-media-downloader/lib/download-pipeline.js) | ✅ RESOLVED |
+| [TICKET-DOM05-003](file:///popup.js) | DOM05 | **P2** | LIFECYCLE | Injection de l'ensemble ordonné des dépendances `lib/*.js` en fallback popup | [popup.js](file:///home/deck/Documents/wa-media-downloader/popup.js) | ✅ RESOLVED |
+| [TICKET-DOM07-002](file:///welcome.html) | DOM07 | **P3** | CSP/SECURITY | Conformité stricte CSP MV3 dans `welcome.html` (`welcome.js`) et suppression code mort `background.js` | [welcome.html](file:///home/deck/Documents/wa-media-downloader/welcome.html), [background.js](file:///home/deck/Documents/wa-media-downloader/background.js) | ✅ RESOLVED |
 
 ---
 
@@ -86,3 +92,18 @@ flowchart TD
 ### Phase 3 — Automatisation E2E & Internationalisation (Priorité P2/P3)
 - [x] **Tests Automatisés** : Harnais de tests E2E `tests/e2e/extension-smoke.spec.mjs` validé à 100% (25/25 assertions passées).
 - [x] **Structure i18n** : Dictionnaires `_locales/en/messages.json` et `_locales/fr/messages.json` créés et synchronisés, support dans `manifest.json` (`default_locale: "en"`).
+
+### Phase 4 — Modularisation UMD & Allègement Packaging (Priorité P1)
+- [x] **Refactorisation UMD** : Décomposition du monolithe de 2 207 lignes en 6 modules ciblés dans `lib/` (`naming-service.js`, `media-detector.js`, `selection-manager.js`, `download-pipeline.js`, `ui-controller.js`, `zip-packager.js`).
+- [x] **Isolation CSS** : Extraction d'`injected.css` sans pollution de `ui.css` sur WhatsApp Web.
+- [x] **Allègement Packaging** : Réduction du paquet de distribution de ~410 KB à 68 KB (-83.6%) et génération d'icônes multi-résolutions (16, 48, 128).
+
+### Phase 5 — Cycle de Vie SPA, Concurrence & Résilience (Priorité P1/P2)
+- [x] **Isolation Inter-Chats SPA** : Détection du titre de la discussion active et purge automatique de l'ancienne sélection lors du changement de contact.
+- [x] **Nommage Contextuel des Exports** : ZIP et transcriptions nommés avec le contact/groupe assaini (`WA_[ChatTitle]_[Date].zip`).
+- [x] **Résilience aux Événements Synthétiques** : Filtrage de la fermeture Escape sur `e.isTrusted === true` pour immuniser le mode sélection contre les fermetures automatisées.
+- [x] **Préservation Unicode** : Assainissement respectant les caractères internationaux et accents dans les noms de documents.
+- [x] **Résilience Réseau Packager ZIP** : Contrôle strict `res.ok` évitant l'emballage de pages d'erreur 404/410 et alertes utilisateur en cas d'échec total.
+- [x] **Sécurité MV3 CSP** : Déport du code inline de `welcome.html` dans `welcome.js`, ajout `rel="noopener noreferrer"`, et suppression du handler mort `downloadMedia` dans `background.js`.
+- [x] **Couverture de Tests Maximale** : Suite d'intégrité et E2E portée à 111 assertions passées à 100% (88 smoke assertions + 23 Playwright assertions).
+

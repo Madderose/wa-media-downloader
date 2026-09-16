@@ -1,11 +1,23 @@
 # Dependencies
 node_modules/
 
-# Logs & Playwright MCP artifacts
+# Build & Web-Ext Artifacts
+web-ext-artifacts/
+*.zip
+*.xpi
+
+# Test & Analysis Artifacts
+.playwright-mcp/
+test-results/
+graphify-out/
 *.log
 extension_debug.log
-.playwright-mcp/
+
+# IDE & Editor configs
+.vscode/
+.idea/
 
 # OS artifacts
 .DS_Store
 Thumbs.db
+

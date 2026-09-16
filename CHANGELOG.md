@@ -9,6 +9,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Uncommitted]
 
+## [1.6.0] - 2026-09-16
+### Added
+- **Chat Context & Isolation**: Implemented `getChatTitle` in `lib/media-detector.js` and active conversation tracking (`setChatContext`, `getChatTitle`) in `lib/selection-manager.js`, isolating selections per conversation on WhatsApp Web.
+- **Contextual Export Naming**:
+ZIP archives and transcripts export files now incorporate the sanitized contact/group name (e.g. `WA_[ChatTitle]_[Date].zip` and `Export Chat: [ChatTitle]` in transcripts).
+- **Unicode Filename Preservation**: Added `sanitizeFilename` in `lib/naming-service.js` preserving international characters (accents, Cyrillic, Arabic, CJK) while stripping only filesystem-illegal characters (`[\\/:*?"<>|\x00-\x1F]`).
+- **Responsive Action Bar**: Added media query in `injected.css` ensuring graceful compact horizontal scrolling and padding reduction on screens and split views under 920px width.
+- **CSP-Compliant Welcome Script**: Added standalone `welcome.js` for `welcome.html` button interactions, ensuring 100% MV3 Content Security Policy compliance.
+- **Automated Tests**: Expanded automated test suites to 111 passing assertions (88 smoke integrity assertions + 23 Playwright assertions in `tests/e2e/whatsapp-interaction.spec.mjs`), validating synthetic Escape immunity and SPA chat-switching state isolation.
+- **Modular Services Architecture**: Decomposed monolithic 2,207-line `content.js` into cohesive, single-responsibility services inside `lib/`:
+  - `lib/naming-service.js`: Extracted timestamp parsing, chronological human-readable formatting, preceding date detection, and cross-batch session collision prevention.
+  - `lib/media-detector.js`: Extracted WhatsApp Web DOM inspection, avatar/emoji/UI filtering, media bubble validation, and chat scraping.
+  - `lib/selection-manager.js`: Extracted virtual scroll persistent cache, state tracking, and live runtime dispatch.
+  - `lib/download-pipeline.js`: Extracted unified download pipeline supporting single PKZIP archives, sequential individual downloads, companion transcripts, and automated document preview downloading.
+  - `lib/ui-controller.js`: Extracted in-page header badge, floating control bar, checkbox overlays, category pills, tri-state master checkbox, and keyboard shortcuts.
+- **Injected Stylesheet**: Created dedicated `injected.css` containing all `.wam-*` and `.wa-dl-*` in-page styles, loaded cleanly via `manifest.json` `content_scripts[0].css`.
+- **Optimized Icons**: Generated standard multi-resolution icons (`icons/icon-16.png`, `icons/icon-48.png`, `icons/icon-128.png`) declared in `manifest.json` under `icons` and `action.default_icon`.
+
+### Changed
+- **Content Script**: Reduced `content.js` from 2,207 lines (78.4 KB) to a lightweight 280-line (9.7 KB) orchestrator (-87.3% code reduction in content script).
+- **Packaging & Bundle Size**: Reduced production extension package size from ~410 KB (541 KB uncompressed) to 67 KB (195 KB uncompressed) — an 83.6% reduction in distribution package footprint.
+- **Git Hygiene**: Untracked binary archive `web-ext-artifacts/wa_media_downloader-1.5.zip` from Git index and added `web-ext-artifacts/`, `*.zip`, `*.xpi`, `.vscode/`, `.idea/`, `graphify-out/`, and `test-results/` to `.gitignore`.
+- **Build Configuration**: Updated `web-ext-config.cjs` to ignore unused root icons, test results, and analysis artifacts.
+- **Documentation**: Embedded active WhatsApp Web screenshot preview in `README.md` and removed obsolete unreferenced screenshot.
+
+### Fixed
+- **SPA Chat-Switching State Leak**: Fixed critical UX defect where selecting messages in one chat would persist when navigating to another contact in WhatsApp Web; the extension now detects conversation changes and resets selection state cleanly.
+- **Synthetic Event Collision**: Fixed bug where automated document preview downloads dispatching synthetic `Escape` events caused `content.js` to inadvertently terminate the user's active selection mode; `window` keydown listener now checks `e.isTrusted === true`.
+- **ZIP Packager Network Resiliency**: Added `res.ok` check in `lib/download-pipeline.js` when fetching media blobs to prevent packaging 404/410 HTTP error payloads into ZIP archives, and added failsafe user status messaging on all-fail batches.
+- **Popup Re-injection Fallback**: Fixed broken script injection in `popup.js` to execute all 7 modular dependencies (`lib/zip-packager.js`, `lib/naming-service.js`, `lib/media-detector.js`, `lib/selection-manager.js`, `lib/download-pipeline.js`, `lib/ui-controller.js`, `content.js`) in dependency order.
+- **Security & A11y Polish in Welcome Page**: Added `rel="noopener noreferrer"` on external link in `welcome.html` and removed inline `onclick` handler.
+- **State De-synchronization on Clear**: Fixed `clearSelection()` in `content.js` and `removeInjectedUI()` in `lib/ui-controller.js` to properly deactivate selection mode and reset header badge `aria-pressed="false"`.
+- **CSS Leaks**: Resolved CSS contamination bug where popup stylesheet (`ui.css`, defining global resets and `body { width: 340px }`) was injected into `https://web.whatsapp.com/*`. `ui.css` is now restricted solely to `popup.html`, while `injected.css` styles in-page controls without global leaks.
+
+### Removed
+- **Dead Background Code**: Removed orphaned `downloadMedia` handler and its vulnerable `setTimeout` loop in `background.js` (downloads are executed in-page via `DownloadPipeline`).
+
+
 ## [1.5.0] - 2026-09-15
 ### Added
 - **Licensing**: Formali

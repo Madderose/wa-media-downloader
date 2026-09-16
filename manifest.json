@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "WA Media Downloader",
-  "version": "1.5",
+  "version": "1.6",
   "default_locale": "en",
   "description": "Bulk download media from the current WhatsApp Web chat.",
   "permissions": [
@@ -14,9 +14,17 @@
   "host_permissions": [
     "https://web.whatsapp.com/*"
   ],
+  "icons": {
+    "16": "icons/icon-16.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
   "action": {
     "default_popup": "popup.html",
-    "default_icon": "icon.png"
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "48": "icons/icon-48.png"
+    }
   },
   "content_scripts": [
     {
@@ -25,7 +33,15 @@
       ],
       "js": [
         "lib/zip-packager.js",
+        "lib/naming-service.js",
+        "lib/media-detector.js",
+        "lib/selection-manager.js",
+        "lib/download-pipeline.js",
+        "lib/ui-controller.js",
         "content.js"
+      ],
+      "css": [
+        "injected.css"
       ],
       "run_at": "document_idle"
     }

@@ -4,6 +4,8 @@
 
 100% private. Everything runs locally inside your browser. No analytics, no servers, no tracking.
 
+![WA Media Downloader in WhatsApp Web](wa_downloader_screenshot_v2.png)
+
 ---
 
 ## ✨ Features
@@ -136,13 +138,20 @@ npx web-ext run
 Packaged files in the distribution `.zip`:
 - `manifest.json`
 - `background.js`
-- `content.js`
+- `content.js` (lightweight orchestrator)
 - `popup.html` & `popup.js`
-- `lib/zip-packager.js`
+- `lib/` (modular zero-data services):
+  - `lib/zip-packager.js` (PKZIP store builder & CRC32)
+  - `lib/naming-service.js` (chronological timestamps & collision avoidance)
+  - `lib/media-detector.js` (DOM scraper & avatar/emoji filtering)
+  - `lib/selection-manager.js` (virtual scroll persistent cache)
+  - `lib/download-pipeline.js` (unified ZIP/single downloader & transcripts)
+  - `lib/ui-controller.js` (in-page badge, checkboxes & floating control bar)
 - `_locales/en/` & `_locales/fr/`
-- `ui.css`
+- `ui.css` (popup interface styling)
+- `injected.css` (in-page controls styling for WhatsApp Web)
 - `welcome.html`
-- `icon.png` & `icon128.png`
+- `icons/` (`icon-16.png`, `icon-48.png`, `icon-128.png`)
 
 ---
 

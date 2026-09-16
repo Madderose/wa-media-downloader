@@ -37,6 +37,12 @@ assert(manifest.permissions.includes('downloads'), 'Permissions include "downloa
 assert(manifest.permissions.includes('activeTab'), 'Permissions include "activeTab"');
 assert(manifest.permissions.includes('storage'), 'Permissions include "storage"');
 assert(manifest.content_scripts?.[0]?.js?.includes('lib/zip-packager.js'), 'Content scripts include "lib/zip-packager.js"');
+assert(manifest.content_scripts?.[0]?.js?.includes('lib/naming-service.js'), 'Content scripts include "lib/naming-service.js"');
+assert(manifest.content_scripts?.[0]?.js?.includes('lib/media-detector.js'), 'Content scripts include "lib/media-detector.js"');
+assert(manifest.content_scripts?.[0]?.js?.includes('lib/selection-manager.js'), 'Content scripts include "lib/selection-manager.js"');
+assert(manifest.content_scripts?.[0]?.js?.includes('lib/download-pipeline.js'), 'Content scripts include "lib/download-pipeline.js"');
+assert(manifest.content_scripts?.[0]?.js?.includes('lib/ui-controller.js'), 'Content scripts include "lib/ui-controller.js"');
+assert(manifest.content_scripts?.[0]?.css?.includes('injected.css'), 'Content scripts CSS includes "injected.css"');
 
 const pkgPath = path.join(rootDir, 'package.json');
 const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
@@ -116,8 +122,11 @@ assert(popupHtml.includes('rel="noopener noreferrer"'), 'External links enforce 
 
 // --- TEST 5: Content Script Injected UI, Theming & Accessibility ---
 console.log('\n⌨️ Test Suite 5: Injected UI, Theming & Accessibility');
-assert(contentCode.includes("masterCb.setAttribute('aria-checked', 'mixed')"), 'content.js supports aria-checked="mixed" for tri-state selection');
-assert(contentCode.includes("masterCb.indeterminate = true;"), 'content.js sets DOM indeterminate state on partial selection');
+const uiControllerCode = fs.readFileSync(path.join(rootDir, 'lib/ui-controller.js'), 'utf8');
+const injectedCss = fs.readFileSync(path.join(rootDir, 'injected.css'), 'utf8');
+
+assert(uiControllerCode.includes("masterCb.setAttribute('aria-checked', 'mixed')"), 'ui-controller.js supports aria-checked="mixed" for tri-state selection');
+assert(uiControllerCode.includes("masterCb.indeterminate = true;"), 'ui-controller.js sets DOM indeterminate state on partial selection');
 assert(contentCode.includes("window.addEventListener('keydown', (e) => {"), 'content.js registers global keydown listener');
 assert(contentCode.includes("e.key === 'Escape'"), 'content.js handles Escape key to dismiss selection mode');
 assert(contentCode.includes("currentDownloadMode"), 'content.js tracks currentDownloadMode');
@@ -125,10 +134,11 @@ assert(contentCode.includes("notifySelectionState"), 'content.js dispatches live
 assert(contentCode.includes("clearSelection"), 'content.js supports programmatic selection clearing');
 assert(contentCode.includes("getSelectionState"), 'content.js handles getSelectionState queries');
 assert(contentCode.includes("downloadSelectedInPage"), 'content.js handles in-page download execution');
-assert(contentCode.includes("--wam-bar-bg"), 'content.js implements theme-aware CSS custom properties');
+assert(injectedCss.includes("--wam-bar-bg"), 'injected.css implements theme-aware CSS custom properties');
 assert(uiCss.includes(".live-card"), 'ui.css defines styles for live selection card');
 assert(uiCss.includes(":focus-visible"), 'ui.css implements :focus-visible outlines');
 assert(uiCss.includes("prefers-reduced-motion"), 'ui.css respects prefers-reduced-motion');
+
 
 // --- TEST 6: Zero-Dependency ZipPackager Binary Integrity ---
 console.log('\n📦 Test Suite 6: PKZIP Binary Packager Integrity & CRC32');
@@ -157,6 +167,32 @@ assert(zipBinary instanceof Uint8Array && zipBinary.length > 50, `Zip buffer gen
 // Validate PKZIP magic numbers (0x04034b50 -> 'PK\x03\x04')
 const isPkZip = zipBinary[0] === 0x50 && zipBinary[1] === 0x4B && zipBinary[2] === 0x03 && zipBinary[3] === 0x04;
 assert(isPkZip, 'Binary starts with valid PKZIP signature (0x50 0x4B 0x03 0x04)');
+
+// --- TEST 7: SPA Lifecycle, Unicode & Security Compliance ---
+console.log('\n🛡️ Test Suite 7: SPA Lifecycle, Unicode & Security Compliance');
+const welcomeHtml = fs.readFileSync(path.join(rootDir, 'welcome.html'), 'utf8');
+const popupJsCode = fs.readFileSync(path.join(rootDir, 'popup.js'), 'utf8');
+
+assert(welcomeHtml.includes('rel="noopener noreferrer"'), 'welcome.html includes rel="noopener noreferrer"');
+assert(!welcomeHtml.includes('onclick='), 'welcome.html does not contain inline onclick handlers (CSP MV3)');
+assert(welcomeHtml.includes('welcome.js'), 'welcome.html loads welcome.js external script');
+assert(contentCode.includes('e.isTrusted'), 'content.js filters Escape keydown listener on e.isTrusted');
+assert(popupJsCode.includes('lib/zip-packager.js') && popupJsCode.includes('lib/naming-service.js'), 'popup.js injects all 7 modular dependencies in executeScript fallback');
+
+await import(path.join(rootDir, 'lib/naming-service.js'));
+const ns = globalThis.NamingService;
+assert(typeof ns?.sanitizeFilename === 'function', 'NamingService exposes sanitizeFilename');
+const unicodeName = ns.sanitizeFilename('facture_août_2026:version*1.pdf');
+assert(unicodeName.includes('août') && !unicodeName.includes(':') && !unicodeName.includes('*'), `NamingService preserves Unicode accents and removes illegal chars (got: "${unicodeName}")`);
+
+await import(path.join(rootDir, 'lib/media-detector.js'));
+const md = globalThis.MediaDetector;
+assert(typeof md?.getChatTitle === 'function', 'MediaDetector exposes getChatTitle');
+
+await import(path.join(rootDir, 'lib/selection-manager.js'));
+const sm = globalThis.SelectionManager;
+assert(typeof sm?.getChatTitle === 'function', 'SelectionManager exposes getChatTitle');
+assert(typeof sm?.setChatContext === 'function', 'SelectionManager exposes setChatContext');
 
 // --- SUMMARY ---
 console.log(`\n========================================`);

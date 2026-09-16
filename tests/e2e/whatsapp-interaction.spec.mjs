@@ -144,7 +144,15 @@ async function runSuite() {
     await checkboxes.nth(0).click();
     assert(await masterCb.getAttribute('aria-checked') === 'mixed', 'Master checkbox aria-checked is "mixed" on partial selection');
 
-    console.log('\n⌨️ Scenario 6: Escape Key Dismissal');
+    console.log('\n⌨️ Scenario 6: Escape Key Dismissal & Synthetic Event Immunity');
+    // Test synthetic escape: should NOT dismiss
+    await page.evaluate(() => {
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    });
+    await page.waitForTimeout(200);
+    assert(await bar.isVisible(), 'Synthetic Escape event does NOT dismiss selection mode');
+
+    // Test real keyboard escape: MUST dismiss
     await page.keyboard.press('Escape');
     await bar.waitFor({ state: 'detached', timeout: 3000 });
     assert(!(await bar.isVisible()), 'Action bar cleanly dismissed upon pressing Escape');
@@ -189,6 +197,35 @@ async function runSuite() {
     } else {
       console.log('  ⚠️ Note: Extension ID not extracted via ServiceWorker target in this runner mode; in-page messaging already validated.');
     }
+
+    console.log('\n🔀 Scenario 8: Chat Context & SPA Switching Isolation');
+    // Reactivate selection mode in initial chat "Project Discussion Group"
+    await badge.click();
+    await bar.waitFor({ state: 'visible', timeout: 5000 });
+    await checkboxes.nth(0).click();
+    await checkboxes.nth(1).click();
+    const badgeTextBefore = await countBadge.textContent();
+    assert(badgeTextBefore.includes('2 selected'), `Initial chat has 2 selected (got: "${badgeTextBefore}")`);
+
+    // Simulate SPA chat transition to "Alice Personal"
+    await page.evaluate(() => {
+      const header = document.querySelector('header');
+      if (header) {
+        let titleEl = header.querySelector('.chat-title');
+        if (!titleEl) {
+          titleEl = document.createElement('div');
+          titleEl.className = 'chat-title';
+          header.prepend(titleEl);
+        }
+        titleEl.textContent = 'Alice Personal';
+      }
+    });
+    await page.waitForTimeout(600);
+
+    const checkedCountAfter = await page.locator('.wa-dl-msg-cb:checked').count();
+    const badgeTextAfter = await countBadge.textContent();
+    assert(checkedCountAfter === 0, 'Previous chat checkboxes cleanly cleared upon switching conversations');
+    assert(badgeTextAfter.includes('0 /'), `Action bar count reset upon conversation switch (got: "${badgeTextAfter}")`);
 
   } finally {
     await context.close();

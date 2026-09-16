@@ -29,47 +29,5 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     return false;
   }
 
-  if (msg.action === 'downloadMedia') {
-    const items = msg.media;
-    let completed = 0;
-
-    if (!items || items.length === 0) {
-      sendResponse({ done: true, total: 0 });
-      return false;
-    }
-
-    items.forEach((item, index) => {
-      setTimeout(() => {
-        chrome.downloads.download({
-          url: item.url,
-          filename: `WA_Media/${item.filename}`,
-          saveAs: false,
-          conflictAction: 'uniquify'
-        }, (downloadId) => {
-          if (chrome.runtime.lastError) {
-            console.warn('Download error for item:', item.filename, chrome.runtime.lastError.message);
-          }
-          completed++;
-          try {
-            chrome.runtime.sendMessage({
-              action: 'progress',
-              completed,
-              total: items.length
-            }, () => {
-              if (chrome.runtime.lastError) {
-                // Popup might be closed, ignore
-              }
-            });
-          } catch (e) {
-            // Popup closed or unmounted
-          }
-        });
-      }, index * 300);
-    });
-
-    sendResponse({ started: true, total: items.length });
-    return false;
-  }
-
   return false;
 });

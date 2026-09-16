@@ -1,0 +1,324 @@
+/* ==========================================================================
+   WA Media Downloader — Injected Content Styles (injected.css)
+   Scoped specifically for WhatsApp Web DOM controls (Badge, Checkboxes, Action Bar)
+   Zero global leaks — all classes prefixed with .wam- or .wa-dl-
+   ========================================================================== */
+
+/* CSS Variables: WhatsApp Web Light and Dark Mode adaptive tokens */
+:root {
+  --wam-primary: #00a884;
+  --wam-primary-hover: #008f6f;
+  --wam-primary-glow: rgba(0, 168, 132, 0.35);
+  --wam-bar-bg: rgba(255, 255, 255, 0.95);
+  --wam-bar-border: rgba(0, 168, 132, 0.4);
+  --wam-text: #111b21;
+  --wam-text-subtle: #667781;
+  --wam-surface-btn: rgba(0, 0, 0, 0.05);
+  --wam-surface-btn-hover: rgba(0, 0, 0, 0.1);
+  --wam-pill-bg: rgba(0, 0, 0, 0.05);
+  --wam-pill-border: rgba(0, 0, 0, 0.1);
+  --wam-pill-text: #111b21;
+  --wam-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+}
+
+body.dark, :root.dark {
+  --wam-bar-bg: rgba(17, 27, 33, 0.95);
+  --wam-bar-border: rgba(0, 168, 132, 0.45);
+  --wam-text: #e9edef;
+  --wam-text-subtle: #8696a0;
+  --wam-surface-btn: rgba(255, 255, 255, 0.08);
+  --wam-surface-btn-hover: rgba(255, 255, 255, 0.15);
+  --wam-pill-bg: rgba(255, 255, 255, 0.08);
+  --wam-pill-border: rgba(255, 255, 255, 0.15);
+  --wam-pill-text: #e9edef;
+  --wam-shadow: 0 12px 36px rgba(0, 0, 0, 0.65);
+}
+
+/* Floating trigger badge in WhatsApp header */
+.wa-dl-header-badge, .wam-header-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  margin-right: 8px;
+  background: linear-gradient(135deg, rgba(0, 168, 132, 0.2), rgba(0, 168, 132, 0.35));
+  border: 1px solid rgba(0, 168, 132, 0.5);
+  border-radius: 20px;
+  color: var(--wam-primary);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s ease;
+  z-index: 100;
+}
+.wa-dl-header-badge:hover, .wam-header-badge:hover {
+  background: rgba(0, 168, 132, 0.3);
+  box-shadow: 0 2px 8px var(--wam-primary-glow);
+  transform: translateY(-1px);
+}
+.wa-dl-header-badge.active, .wam-header-badge.active {
+  background: var(--wam-primary);
+  color: #ffffff;
+  border-color: var(--wam-primary);
+  box-shadow: 0 0 12px var(--wam-primary-glow);
+}
+
+/* Message Selection Checkbox Overlay */
+.wa-dl-checkbox-wrap, .wam-checkbox-wrap {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--wam-bar-bg);
+  border: 1.5px solid var(--wam-primary);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.35);
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+.wa-dl-checkbox-wrap:hover, .wam-checkbox-wrap:hover {
+  transform: scale(1.12);
+}
+.wa-dl-checkbox-wrap input[type="checkbox"], .wam-checkbox-wrap input[type="checkbox"] {
+  cursor: pointer;
+  width: 16px;
+  height: 16px;
+  accent-color: var(--wam-primary);
+  margin: 0;
+}
+
+/* Highlight on selected message row */
+.wa-dl-selected-row, .wam-selected-row {
+  outline: 2px solid var(--wam-primary) !important;
+  outline-offset: 2px;
+  box-shadow: 0 0 14px var(--wam-primary-glow) !important;
+  border-radius: 8px !important;
+  transition: all 0.2s ease;
+}
+
+/* Bottom Floating Action Bar */
+.wa-dl-action-bar, .wam-action-bar {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--wam-bar-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--wam-bar-border);
+  border-radius: 18px;
+  padding: 10px 16px;
+  box-shadow: var(--wam-shadow), 0 0 20px var(--wam-primary-glow);
+  z-index: 999999;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--wam-text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 13px;
+  box-sizing: border-box;
+  max-width: 96vw;
+  animation: waDlSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes waDlSlideUp {
+  from { transform: translate(-50%, 30px); opacity: 0; }
+  to { transform: translate(-50%, 0); opacity: 1; }
+}
+
+.wa-dl-bar-info, .wam-bar-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  color: var(--wam-text);
+  padding-right: 6px;
+  border-right: 1px solid var(--wam-pill-border);
+  white-space: nowrap;
+}
+
+.wa-dl-bar-badge, .wam-bar-badge {
+  background: var(--wam-primary);
+  color: #ffffff;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* Master checkbox in floating action bar */
+.wa-dl-master-cb-label, .wam-master-cb-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: var(--wam-surface-btn);
+  border: 1px solid var(--wam-pill-border);
+  border-radius: 10px;
+  cursor: pointer;
+  user-select: none;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--wam-text);
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+.wa-dl-master-cb-label:hover, .wam-master-cb-label:hover {
+  background: var(--wam-surface-btn-hover);
+  border-color: var(--wam-primary);
+}
+.wa-dl-master-checkbox, .wam-master-checkbox {
+  cursor: pointer;
+  width: 15px;
+  height: 15px;
+  accent-color: var(--wam-primary);
+  margin: 0;
+}
+
+/* Contextual filter pills */
+.wam-filter-pills {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--wam-surface-btn);
+  border: 1px solid var(--wam-pill-border);
+  border-radius: 10px;
+  padding: 2px;
+}
+.wam-filter-pill {
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--wam-text-subtle);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+.wam-filter-pill:hover {
+  color: var(--wam-text);
+  background: var(--wam-surface-btn-hover);
+}
+.wam-filter-pill.active {
+  background: var(--wam-primary);
+  color: #ffffff;
+  box-shadow: 0 1px 4px var(--wam-primary-glow);
+}
+
+/* Action buttons in floating bar */
+.wa-dl-btn, .wam-btn {
+  padding: 7px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--wam-pill-border);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  color: var(--wam-text);
+  background: var(--wam-surface-btn);
+}
+.wa-dl-btn:hover, .wam-btn:hover {
+  background: var(--wam-surface-btn-hover);
+  transform: translateY(-1px);
+}
+
+.wa-dl-btn-primary, .wam-btn-primary {
+  background: linear-gradient(135deg, var(--wam-primary), var(--wam-primary-hover)) !important;
+  border-color: var(--wam-primary) !important;
+  color: #ffffff !important;
+  box-shadow: 0 3px 10px var(--wam-primary-glow);
+}
+.wa-dl-btn-primary:hover, .wam-btn-primary:hover {
+  background: linear-gradient(135deg, #00c298, var(--wam-primary)) !important;
+  transform: translateY(-1px);
+}
+
+.wam-btn-toggle {
+  border: 1px solid var(--wam-pill-border);
+  background: var(--wam-surface-btn);
+  color: var(--wam-text-subtle);
+}
+.wam-btn-toggle.active {
+  background: rgba(0, 168, 132, 0.2);
+  border-color: var(--wam-primary);
+  color: var(--wam-primary);
+}
+
+.wa-dl-btn-cancel, .wam-btn-cancel {
+  background: rgba(255, 68, 68, 0.12);
+  color: #ff6b6b;
+  border-color: rgba(255, 68, 68, 0.3);
+  padding: 7px 10px;
+}
+.wa-dl-btn-cancel:hover, .wam-btn-cancel:hover {
+  background: rgba(255, 68, 68, 0.22);
+}
+
+/* Timestamp tag displayed next to checkbox */
+.wa-dl-time-tag, .wam-time-tag {
+  position: absolute;
+  top: 7px;
+  left: 38px;
+  background: var(--wam-bar-bg);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--wam-bar-border);
+  color: var(--wam-primary);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 8px;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 1000;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* A11y: focus-visible and reduced motion */
+.wa-dl-btn:focus-visible, .wam-btn:focus-visible,
+.wa-dl-header-badge:focus-visible, .wam-header-badge:focus-visible,
+.wam-filter-pill:focus-visible, .wa-dl-master-cb-label:focus-visible {
+  outline: 2px solid var(--wam-primary) !important;
+  outline-offset: 2px !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wa-dl-action-bar, .wam-action-bar {
+    animation: none !important;
+  }
+  .wa-dl-btn, .wam-btn, .wa-dl-header-badge, .wam-header-badge,
+  .wa-dl-checkbox-wrap, .wam-checkbox-wrap {
+    transition: none !important;
+    transform: none !important;
+  }
+}
+
+/* Responsive layout for compact screens and split view */
+@media (max-width: 920px) {
+  .wa-dl-action-bar, .wam-action-bar {
+    max-width: 98vw;
+    gap: 6px;
+    padding: 8px 12px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .wa-dl-action-bar::-webkit-scrollbar, .wam-action-bar::-webkit-scrollbar {
+    display: none;
+  }
+}
+

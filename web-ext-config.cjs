@@ -11,6 +11,9 @@ module.exports = {
     'manifest firefox.json',
     'screenshot*.png',
     'wa_downloader_screenshot*.png',
+    'icon.png',
+    'icon128.png',
+    'graphify-out/**',
     '.agents/**',
     '.playwright-mcp/**',
     'node_modules/**',
@@ -18,6 +21,7 @@ module.exports = {
     'package-lock.json',
     'tests',
     'tests/**',
+    'test-results/**',
   ],
   build: {
     overwriteDest: true,
